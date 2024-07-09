@@ -30,7 +30,7 @@ class QATrack:
     def log_into_QATrack():
 
         user = os.getlogin()
-        key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'Not in GitHub', 'LoginInfo_qatrack.xlsx')
+        key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'Not in GitHub', 'LoginInfo_qatrack.xlsx')
         keys = pd.read_excel(key_path)
 
         for index, row in keys.iterrows():
