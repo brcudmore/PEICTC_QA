@@ -7,9 +7,10 @@ from scipy.signal import savgol_filter
 import datetime as datetime
 import os
 import sys
+import base64
 
-sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_Machine_QA")
-from Helpers.QATrack.QATrackHelpers import QATrack as qat
+sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
+from Helpers.QATrackHelpers import QATrack as qat
 
 def get_center_bb(img, center_bb_start, search_window = 30):
     center_bb = {}
@@ -52,7 +53,7 @@ def find_centroid_using_polynomial(x_values, y_values, degree=4, trim = 0):
     x_values = x_values[trim:len(x_values)-trim]
     y_values = y_values[trim:len(y_values)-trim]
 
-    high_res_x_values, fit = get_poly_values(x_values, y_values, degree)
+    high_res_x_values, fit, _ = get_poly_values(x_values, y_values, degree)
     if show_plots == True:
         plt.plot(high_res_x_values, fit, 'r-', zorder = 10)
 
@@ -66,7 +67,8 @@ def get_poly_values(x_values, y_values, degree):
     coefficients = np.polyfit(x_values, y_values, degree)
     high_res_x_values = np.linspace(min(x_values), max(x_values), 2000)
     fit = polynomial(high_res_x_values, *coefficients)
-    return high_res_x_values, fit
+    position_at_zero = coefficients[-1]
+    return high_res_x_values, fit, position_at_zero
 
 def polynomial(x, *coefficients):
     return np.polyval(coefficients, x)
@@ -104,7 +106,7 @@ def measure_squares_in_cm(image, center_bb, pixel_spacing_cm):
         elif 'x2' in result:
             draw_vertical_lines(interpolated_peaks['Left-Right'][1], center_bb['y'])
 
-    plt.title("Results. Close Figure to Proceed.")
+    plt.title("Close Figure to Proceed.")
     plt.xlabel('Y1')
     plt.ylabel('X1', rotation = 0)
     plt.show()
@@ -320,6 +322,7 @@ def process_folder():
     return machine, date
 
 def calculate_average_deviation():
+    global attachments
     jaws = {"x1": {},
             "x2": {},
             "y1": {},
@@ -339,9 +342,10 @@ def calculate_average_deviation():
         plt.plot(jaws[jaw]["positions"], jaws[jaw]["residuals"], marker = 'o', linestyle = '', markersize = 10)
 
     for jaw in jaws:
-        x_values, fit = get_poly_values(jaws[jaw]["positions"], jaws[jaw]["residuals"], degree = 2)
+        x_values, fit, position_at_zero = get_poly_values(jaws[jaw]["positions"], jaws[jaw]["residuals"], degree = 2)
         plt.plot(x_values, fit, linestyle = '--', color = 'black')
         jaws[jaw]["average"] = np.round(np.average(jaws[jaw]["residuals"]), 2)
+        jaws[jaw]["position at 0 cm"] = position_at_zero
 
 
     plt.legend(["Ave. X1 Deviation = {}".format(jaws["x1"]["average"]),\
@@ -352,11 +356,11 @@ def calculate_average_deviation():
 
     plt.subplots_adjust(right = 0.75)
 
-    plt.title("Deviation from Expected Positions", fontsize = 18)
+    plt.title("{}: Jaw Deviation from Expected Positions ({})".format(machine, date.split(" ")[0]), fontsize = 18)
     plt.xlabel("Expected Position (cm)", fontsize = 16)
     plt.ylabel("Deviation (mm)", fontsize = 16)
 
-    figure_save_location = os.path.join(input_folder, "Deviation Summary.png")
+    figure_save_location = os.path.join(input_folder, "Jaw Deviation Summary.png")
 
     plt.savefig(figure_save_location)
 
@@ -367,13 +371,25 @@ def calculate_average_deviation():
     all_results["y1_average_deviation"] = jaws["y1"]["average"]
 
     all_results["y2_average_deviation"] = jaws["y2"]["average"]
-    # all_results["jaws_vs_radiation_png"] = {'filename': figure_save_location,
-    #         'value': base64.b64encode(open(figure_save_location, 'rb').read()).decode(),
-    #         'encoding': 'base64'}
+
+    all_results["predicted_x1_at_0mm"] = np.round(jaws["x1"]["position at 0 cm"], 2)
+    all_results["predicted_x2_at_0mm"] = np.round(jaws["x2"]["position at 0 cm"], 2)
+
+    all_results["predicted_y1_at_0mm"] = np.round(jaws["y1"]["position at 0 cm"], 2)
+    all_results["predicted_y2_at_0mm"] = np.round(jaws["y2"]["position at 0 cm"], 2)
+
+    all_results["predicted_x_junction_mm"] = np.round(jaws["x1"]["position at 0 cm"] + jaws["x2"]["position at 0 cm"], 2)
+    all_results["predicted_y_junction_mm"] = np.round(jaws["y1"]["position at 0 cm"] + jaws["y2"]["position at 0 cm"], 2)
+    
+    attachments =   [{'filename': "Jaw Deviation Summary.png",
+            'value': base64.b64encode(open(figure_save_location, 'rb').read()).decode(),
+            'encoding': 'base64'}]
+    
 
 input_folder = ''
 show_plots = False
 all_results = {}
+attachments = []
 residuals_mm = {}
 machine, date = process_folder()
 
@@ -385,4 +401,4 @@ while machine == False:
 qat.log_into_QATrack()
 utc_url, macros = qat.get_unit_test_collection(machine, "Jaw Position Accuracy")
 tests = qat.format_results(macros, all_results)
-qat.post_results(utc_url, tests, date)
+qat.post_results(utc_url, tests, date, attachments = attachments)

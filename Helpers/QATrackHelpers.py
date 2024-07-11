@@ -95,10 +95,13 @@ class QATrack:
         for test in tests:
             for result in results:
                 if test == result:
-                    try:
-                        tests[test] = {'value': float(results[result])}
-                    except:
-                        tests[test] = {'skipped': True}
+                    if 'filename' in str(results[result]):
+                        tests[test] = results[result]
+                    else:
+                        try:
+                            tests[test] = {'value': float(results[result])}
+                        except:
+                            tests[test] = {'skipped': True}
         return tests
     
     def format_date(date_source):
@@ -131,7 +134,7 @@ class QATrack:
 
         return date
     
-    def post_results(utc_url, tests, date, in_progress = True):
+    def post_results(utc_url, tests, date, in_progress = True, attachments = []):
         
         data = {
             'unit_test_collection': utc_url,
@@ -141,7 +144,10 @@ class QATrack:
             'work_completed': date,
             #'comment': "Results imported using API (GUI v2)",  # optional
                 "tests": tests      
-    }       
+    }   
+        if len(attachments) > 0:
+            data["attachments"] = attachments
+
         resp = requests.post(QATrack.root + "/qa/testlistinstances/", json=data, headers=QATrack.headers)
 
         if resp.status_code == requests.codes.CREATED: # http code 201
