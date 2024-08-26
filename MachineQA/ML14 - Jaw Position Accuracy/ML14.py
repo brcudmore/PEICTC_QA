@@ -434,7 +434,6 @@ def find_center_of_rotation(cal_images):
                     'y2': interpolated_peaks["Left-Right"][1]
                     }
 
-        
         elif "90" in str(round(col_angle)):
             cal_90 = True
             center = {'x': pixel_info.shape[0]//2, 'y': pixel_info.shape[1]//2}
@@ -445,6 +444,8 @@ def find_center_of_rotation(cal_images):
                     'y1': interpolated_peaks["Left-Right"][1],
                     'y2': interpolated_peaks["Left-Right"][0]
                     }
+            
+
                     
     if cal_90 and cal_270:
         # X jaws are in up-down direction so it is the row between them 
@@ -550,17 +551,20 @@ def calculate_average_deviation():
         plt.plot(x_values, fit, linestyle = '--', color = 'black')
         jaws[jaw]["average"] = np.round(np.average(jaws[jaw]["residuals"]), 2)
 
-
-    plt.legend(["X1\n0 cm = {}\nAve = {}\n".format(jaws["x1"]["iso"], jaws["x1"]["average"],),\
-                "X2\n0 cm = {}\nAve = {}\n".format(jaws["x2"]["iso"], jaws["x2"]["average"],),\
-                "Y1\n0 cm = {}\nAve = {}\n".format(jaws["y1"]["iso"], jaws["y1"]["average"],),\
-                "Y2\n0 cm = {}\nAve = {}\n".format(jaws["y2"]["iso"], jaws["y2"]["average"],)], loc= (1.01, 0.3), fontsize = 12)
+    font_size = 24
+    plt.legend(["X1\n0 mm = {}\nAve = {}\n".format(jaws["x1"]["iso"], jaws["x1"]["average"],),\
+                "X2\n0 mm = {}\nAve = {}\n".format(jaws["x2"]["iso"], jaws["x2"]["average"],),\
+                "Y1\n0 mm = {}\nAve = {}\n".format(jaws["y1"]["iso"], jaws["y1"]["average"],),\
+                "Y2\n0 mm = {}\nAve = {}\n".format(jaws["y2"]["iso"], jaws["y2"]["average"],)], loc= (1.01, 0.1), fontsize = font_size-4)
     
     plt.subplots_adjust(right = 0.75)
 
-    plt.title("{}: Jaw Deviation from Expected Positions ({})".format(machine, date.split(" ")[0]), fontsize = 18)
-    plt.xlabel("Expected Position (cm)", fontsize = 16)
-    plt.ylabel("Deviation (mm)", fontsize = 16)
+    plt.title("{}: Jaw Deviation from Expected Positions ({})".format(machine, date.split(" ")[0]), fontsize = font_size)
+    plt.ylim([-1, 1])
+    plt.xticks(fontsize = font_size-4)
+    plt.yticks(fontsize = font_size-4)
+    plt.xlabel("Expected Position (cm)", fontsize = font_size)
+    plt.ylabel("Deviation (mm)", fontsize = font_size)
 
     figure_save_location = os.path.join(input_folder, "Jaw Deviation Summary.png")
 
