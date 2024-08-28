@@ -2,61 +2,57 @@ import pydicom as dicom
 import os
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
-from scipy.signal import argrelextrema
+from scipy.signal import find_peaks
 import numpy as np
+import sys
+sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
+from Helpers.QATrackHelpers import QATrack as qat
 
 image_info = {
-    "Machine Name": '',
-    "Image Type": '',
-    "Image Date": '',
-    "Image UID": '',
-    "Pixel Data": ''
+    "machine": '',
+    "date": '',
+    "pixel array": ''
 
 }
-def get_rsd(array_1D):
-    rsd = []
-    for value in range(len(array_1D-rsd_window)):
-        rsd_window_mean = np.mean(array_1D[value : value + rsd_window])
-        rsd_window_std = np.std(array_1D[value : value + rsd_window])
-        rsd.append((rsd_window_std/rsd_window_mean)*100)
-    return np.array(rsd)
 
-def find_jaws(rsd_array):
-    toot = argrelextrema(rsd_array, np.greater)
-    rsd_maxima = []
-    for value in toot[0]:
-        if rsd_array[value] > 0.5:
-            rsd_maxima.append(value)
-    y1 = rsd_maxima[-1] + (rsd_window * 0.5)
-    y2 = rsd_maxima[0] + (rsd_window * 0.5)
+def find_jaws(column_gradient):
+    # find large changes in HU value
+    peaks_found, _ = find_peaks(column_gradient, prominence= 100)
+    y1 = peaks_found[-1]
+    y2 = peaks_found[0]
     return y1, y2
 
-def find_MLC(rsd_array):
-    toot = argrelextrema(rsd_array, np.less)
-    rsd_minima = []
-    for value in toot[0]:
-        if rsd_array[value] > 0.5:
-            rsd_minima.append(value)
-    bank_B_leaf = rsd_minima[0] + (rsd_window * 0.5)
-    bank_A_leaf = rsd_minima[-1] + (rsd_window * 0.5)
-    return bank_B_leaf, bank_A_leaf
+def find_MLC(column_gradient):
+    manipulated_column = -column_gradient + column_gradient.max()
+    peaks_found, _= find_peaks(manipulated_column, prominence=100)
+
+    bank_b_leaf = peaks_found[0]
+    bank_a_leaf = peaks_found[-1]
+    return bank_b_leaf, bank_a_leaf
 
 def get_image_info(image_path):
     image = dicom.read_file(image_path)
-    image_info["Machine Name"] = image['RadiationMachineName'].value
-    image_info["Image Type"] = image['RTImageDescription'].value
-    image_info["Image Date"] = image['ContentDate'].value
-    image_info["Image UID"] = image['SeriesInstanceUID'].value
-    image_info["Pixel Data"] = median_filter(image.pixel_array, 5)
+    image_info["machine"] = image['RadiationMachineName'].value
+    image_info["date"] = qat.format_date(image)
+    image_info["pixel array"] = median_filter(image.pixel_array, 5)
 
     return image_info
 
 def process_column(column):
-    column = pixel_data[:, column]
-    column_rsd = get_rsd(column)
-    y1, y2 = find_jaws(column_rsd)
-    bank_B, bank_A = find_MLC(column_rsd)
-    return [y2, bank_B, bank_A, y1]
+    column = np.mean(pixel_data[:, column-column_window: column], axis = 1)
+    column_gradient = abs(np.gradient(column))
+    y1, y2 = find_jaws(column_gradient)
+    bank_b, bank_a = find_MLC(column_gradient)
+
+    return {
+        'bank a' : {
+            'mlc': bank_a, 
+            'jaw': y1},
+        'bank b' : {
+            'mlc': bank_b,
+            'jaw': y2
+        }
+    }
 
 def process_image(column1, column2):
     column1_results = process_column(column1)
@@ -65,13 +61,16 @@ def process_image(column1, column2):
     run = column2 - column1
     angle_degrees = []
 
-    for i in [0, 2]:
-        rise = (column1_results[i+1] - column1_results[i]) - (column2_results[i+1] - column2_results[i])
+    for bank in column1_results:
+        rise = (column2_results[bank]['mlc'] - column2_results[bank]['jaw']) - \
+            (column1_results[bank]['mlc'] - column1_results[bank]['jaw'])
+        
+
         angle_degrees.append(np.degrees(np.arctan(rise / run)))
     
     return {
-        "Bank B skew (deg)": angle_degrees[0],
-        "Bank A skew (deg)": angle_degrees[1]
+        "mlc_bank_a_alignment": np.round(angle_degrees[0], 1),
+        "mlc_bank_b_alignment": np.round(angle_degrees[1], 1)
     }
 
 def show_plots():
@@ -83,37 +82,30 @@ def show_plots():
     plt.plot([column2, column2], [390, 890])
     plt.show()
 
-    # Figure 2
-    column1_array = pixel_data[:, column1]
-    column1_rsd = get_rsd(column1_array)
-    column2_array = pixel_data[:, column2]
-    column2_rsd = get_rsd(column2_array)
-
-    plt.plot(column1_rsd)
-    plt.title('Column 1 (Blue ROI) RSD used to Identify Jaws and Leaves')
-    plt.annotate('Y2', xy = (390, 2.65), xytext = (171,2.65), arrowprops = dict(facecolor ='red', shrink = 0.05))
-
-    plt.annotate('Bank B Leaf Base', xy = (458, 1.26), xytext = (0,0.5), arrowprops = dict(facecolor ='red', shrink = 0.05))
-
-    plt.annotate('Bank A Leaf Tip', xy = (798, 1.17), xytext = (1000,0.5), arrowprops = dict(facecolor ='red', shrink = 0.05))
-    plt.annotate('Y1', xy = (872, 2.58), xytext = (1071,2.58), arrowprops = dict(facecolor ='red', shrink = 0.05))
-    plt.show()
-
 
 development = True # Change to True to see image and columns defined below
 
-rsd_window = 16     # 16 (Must be even)
+column_window = 20 
 column1 = 395       # 395 - Through base of MLC leaf B and tip of MLC Leaf A
 column2 = 875       # 875 - Through base of MLC leaf A and tip of MLC Leaf B
 
 repeat_analysis = 'y'
 
+print("\n~  AL20 - MLC Leaf Alignment with Jaws  ~\n")
+
 while 'y' in repeat_analysis.lower():
+
     image_path = input("Drag and drop the file to be processed.").replace("& ", "").strip("'").strip('"')
     image_info = get_image_info(image_path)
-    pixel_data = image_info["Pixel Data"]
+    pixel_data = np.array(image_info["pixel array"])
+    
     results = process_image(column1, column2)
-    print(results)
+
+    qat.log_into_QATrack()
+    utc_url, macros = qat.get_unit_test_collection(image_info['machine'], "MLC leaf alignment with jaws")
+    tests = qat.format_results(macros, results)
+    qat.post_results(utc_url, tests, image_info['date'])
+
     if development == True:
         show_plots()
     
