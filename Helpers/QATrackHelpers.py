@@ -71,7 +71,8 @@ class QATrack:
                     print(test_lists[i]['name'])
                 print("\nRefine test_list name to reduce the number of test list results.")
             elif number_of_test_lists == 0:
-                print("No test lists found on {} containing '{}'.".format(unit, test_list))
+                print("\nNo test lists found on {} containing '{}'.\nPlease contact a QATrack administrator to set up this unit test collection or process a different dataset.\n".format(unit, test_list))
+                time.sleep(2)
                 return None, None
         else:
             utc_url = test_lists[0]['url']

@@ -9,6 +9,7 @@ import os
 import sys
 import base64
 
+# create executable by running the following while in the directory of the .py file
 # pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --clean ML14.py
 
 sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
