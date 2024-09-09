@@ -2,17 +2,18 @@ import requests
 import os as os
 import datetime as datetime
 import time
+import sys
+from PIL import Image as Image
+import pandas as pd
 
 import pydicom as dicom
 from pyTQA import tqa
-
-import numpy as np
-from scipy.signal import savgol_filter, find_peaks, medfilt2d
 import json
-from PIL import Image as Image
-from scipy.signal import find_peaks
-from scipy.optimize import curve_fit
-import pandas as pd
+
+
+
+sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
+from .QATrackHelpers import QATrack as qat
 
 class SMARI:
     client_key = ''
@@ -114,7 +115,7 @@ class SMARI:
     def log_into_smari():
 
         user = os.getlogin()
-        key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'Not in GitHub', 'LoginInfo_smari.xlsx')
+        key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'Not in GitHub', 'LoginInfo_smari.xlsx') # Can only access with Physicist login
         keys = pd.read_excel(key_path)
 
         for index, row in keys.iterrows():
@@ -125,7 +126,7 @@ class SMARI:
                 tqa.set_tqa_token()
                 return
             
-        print(user + " does not have a QATrack token set. Contact Ben Cudmore to get set up.")
+        print(user + " does not have a SMARI token set. Contact Ben Cudmore to get set up.")
 
 
     def post_results_from_rsid(head = '', pelvis = '', thorax = ''):
@@ -141,7 +142,7 @@ class SMARI:
         for machine in rsids:
             for scan in rsids[machine]:
                 if rsids[machine][scan] != '':
-                    date = QATrack.format_date(tqa.get_report_data(rsids[machine][scan])['json']['reportData']['collectedOn']['date'])
+                    date = qat.format_date(tqa.get_report_data(rsids[machine][scan])['json']['reportData']['collectedOn']['date'])
                     date_key = date[0:7]
 
                     if machine not in SMARI.machines:
@@ -188,21 +189,19 @@ class SMARI:
                 elif "GE Discovery":
                     test_list = None
 
-                unit_test_collection_url, macros = QATrack.get_unit_test_collection(machine, test_list)
+                unit_test_collection_url, macros = qat.get_unit_test_collection(machine, test_list)
 
                 if type(unit_test_collection_url) != None:
-                    formatted_results = QATrack.format_results(macros, qatrack_results[machine][date_key]["Results"])
+                    formatted_results = qat.format_results(macros, qatrack_results[machine][date_key]["Results"])
 
                     date = qatrack_results[machine][date_key]["Acquisition Date"]
 
-                    QATrack.post_results(unit_test_collection_url, formatted_results, date)
+                    qat.post_results(unit_test_collection_url, formatted_results, date)
 
     def process_input_folder():
         folder_content = SMARI.determine_input_path_contents()
         SMARI.initialize_result_list(folder_content)
         SMARI.set_expected_results()
-
-        toot = SMARI.machines
 
         for machine in SMARI.machines:
             for date_key in SMARI.machines[machine]:
@@ -263,7 +262,7 @@ class SMARI:
                         series_instance_id_dict[machine_name][acquisition_date][series_instance_uid] = {
                             "kvp": image.KVP,
                             "mA": image.XRayTubeCurrent,
-                            "Acquisition Date": QATrack.format_date(image)
+                            "Acquisition Date": qat.format_date(image)
                         }
 
                 except Exception as e:
@@ -378,5 +377,3 @@ class SMARI:
                 'status': response.status_code,
                 'raw': response
                 }
-
-SMARI.log_into_smari()
