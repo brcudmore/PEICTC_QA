@@ -11,9 +11,8 @@ from pyTQA import tqa
 import json
 
 
-
 sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
-from .QATrackHelpers import QATrack as qat
+from Helpers.QATrackHelpers import QATrack as qat
 
 class SMARI:
     client_key = ''
@@ -115,10 +114,10 @@ class SMARI:
     def log_into_smari():
 
         user = os.getlogin()
-        key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'Not in GitHub', 'LoginInfo_smari.xlsx') # Can only access with Physicist login
+        key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'Not in GitHub', 'LoginInfo_smari.xlsx') # Can only access with Physicist login
         keys = pd.read_excel(key_path)
 
-        for index, row in keys.iterrows():
+        for _, row in keys.iterrows():
             if row["user"] == user:
                 tqa.client_key = row["key"]
                 print(f"418:{row['id']}")
@@ -155,7 +154,7 @@ class SMARI:
                     SMARI.machines[machine][date_key][scan]["Acquisition Date"] = date
 
         SMARI.set_expected_results()
-        toot = SMARI.machines
+
         for machine in SMARI.machines:
             for date_key in SMARI.machines[machine]:
                 for scan in SMARI.machines[machine][date_key]:
@@ -264,9 +263,11 @@ class SMARI:
                             "mA": image.XRayTubeCurrent,
                             "Acquisition Date": qat.format_date(image)
                         }
-
+        
                 except Exception as e:
                     print("There was an error:\n" + str(e))
+        if len(series_instance_id_dict.keys()) < 1:
+            print("There were no files in the input folder.\n")
 
         return series_instance_id_dict
         

@@ -126,8 +126,8 @@ def measure_squares_in_cm(image, center, pixel_spacing_cm):
     return results_in_cm
 
 def find_closest_index(x_values, data, search_value):
-    toot = list((abs(data[0:len(data)] - search_value)))
-    search_index = x_values[toot.index(min(toot))]
+    differences = list((abs(data[0:len(data)] - search_value)))
+    search_index = x_values[differences.index(min(differences))]
     return search_index
 
 def abs_first_derivative_method(data):
@@ -587,13 +587,6 @@ def calculate_average_deviation():
     attachments =   [{'filename': "Jaw Deviation Summary.png",
             'value': base64.b64encode(open(figure_save_location, 'rb').read()).decode(),
             'encoding': 'base64'}]
-
-def find_closest_index(data, search_value):
-    x_values, interp_data = interpolate_data(data)
-
-    toot = list(abs(np.array(interp_data) - search_value))
-    search_index = x_values[toot.index(min(toot))]
-    return search_index
 
 def interpolate_data(data, points = 20):
     interp_data = []
