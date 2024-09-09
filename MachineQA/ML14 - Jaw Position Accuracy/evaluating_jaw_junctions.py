@@ -17,7 +17,6 @@ from Helpers.QATrackHelpers import QATrack as qat
 def find_film_roi(pixel_array):
     film_rows = []
     film_columns = []
-
     # blur image to not detect gaps between film
     blurred_pixel_array = medfilt(pixel_array, 21)
 
@@ -193,8 +192,8 @@ def normalize_max_to_100(array):
 file_path = ""
 pixel_spacing: float
 save_figures = True
-
-input_folder = input("Drag and drop the folder containing the files to be processed.").replace("& ", "").strip("'").strip('"')
+print("~ Monthly Jaw Position Accuracy (ML14) ~\n")
+input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
 
 for dir_path, dir_names, file_names in os.walk(input_folder):
     for file in file_names:

@@ -1,3 +1,5 @@
+print("~ Monthly Jaw Position Accuracy (ML14) ~\n")
+print("Please wait while the app loads.\n")
 import pydicom as dicom
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +12,7 @@ import sys
 import base64
 
 # create executable by running the following while in the directory of the .py file
-# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --clean ML14.py
+# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --consol --clean ML14.py
 
 sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
 from Helpers.QATrackHelpers import QATrack as qat
@@ -469,7 +471,7 @@ def process_folder(use_bb = False):
     date_list = []
     machine_list = []
     machine = ""
-    input_folder = input("Drag and drop the folder containing the files to be processed.").replace("& ", "").strip("'").strip('"')
+    input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
     
     cal_images, analysis_images = organize_images(input_folder)
     find_center_of_rotation(cal_images)
@@ -639,7 +641,7 @@ calculate_average_deviation()
 while machine == False:
     machine, date = process_folder()
 
-
+print("\nPosting to QATrack...\n")
 qat.log_into_QATrack()
 utc_url, macros = qat.get_unit_test_collection(machine, "Jaw Position Accuracy")
 tests = qat.format_results(macros, all_results)

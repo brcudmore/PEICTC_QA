@@ -139,7 +139,7 @@ class QATrack:
         
         data = {
             'unit_test_collection': utc_url,
-            'in_progress': in_progress,  # optional, default is False
+            'in_progress': in_progress,
             'include_for_scheduling': True,
             'work_started': date,
             'work_completed': date,
