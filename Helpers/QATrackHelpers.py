@@ -16,7 +16,6 @@ class QATrack:
     3.  tests = qat.format_results(macros, all_results)
             # all_results must be structured in your as {"QATrack_test_marco": result}
     4.  qat.post_results(utc_url, tests, date)
-    5.  evaluate_MPC_position0(use_bb = True)
 
     """
     root = "http://qatrack/api"
