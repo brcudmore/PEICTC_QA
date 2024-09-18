@@ -357,6 +357,7 @@ def measure_squares(image):
 
     plt.show()
     figure_save_location = image_path.rstrip('.tif') + " Analysis.png"
+    plt.savefig(figure_save_location)
 
     attachments =   [{'filename': "Jaw Deviation Summary.png",
             'value': base64.b64encode(open(figure_save_location, 'rb').read()).decode(),
@@ -466,7 +467,7 @@ def approximate_center(img):
 
     return center_start
 
-field_size_cm = 15.5
+field_size_cm = 15.75
 crop_px = round(field_size_cm / 2.54 * 96 / 2)
 image_path = ''
 
