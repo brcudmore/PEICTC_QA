@@ -97,16 +97,21 @@ class SMARI:
             },
         }
     },
-    "GE Discovery RT Gen2": 
+    "DiscoveryRT": 
     {
         'Machine ID': '',
         'Tests': 
         {
-            'D3 - D4 - CT number for water - Noise and Uniformity': '',
-            'GE water phantom': '',
-            'CTP700': '',
-            'Metal Artifact': '',
-            'CTP604': ''
+            'D3 - D4 - CT number for water - Noise and Uniformity': 
+            {
+                'kvp': '120',
+                'mA': '250'
+            },
+            'GE water phantom': 
+            {
+                'kvp': '120',
+                'mA': '3100' ### temp
+            }
         }
     }
     }
@@ -120,7 +125,6 @@ class SMARI:
         for _, row in keys.iterrows():
             if row["user"] == user:
                 tqa.client_key = row["key"]
-                print(f"418:{row['id']}")
                 tqa.client_id = f"418:{row['id']}"
                 tqa.set_tqa_token()
                 return
@@ -153,7 +157,7 @@ class SMARI:
                     SMARI.machines[machine][date_key][scan] = {}
                     SMARI.machines[machine][date_key][scan]["Acquisition Date"] = date
 
-        SMARI.set_expected_results()
+        SMARI.set_expected_linac_results()
 
         for machine in SMARI.machines:
             for date_key in SMARI.machines[machine]:
@@ -199,10 +203,17 @@ class SMARI:
 
     def process_input_folder():
         folder_content = SMARI.determine_input_path_contents()
+        toot = SMARI.machines
         SMARI.initialize_result_list(folder_content)
-        SMARI.set_expected_results()
+        toot = SMARI.machines
+        if 'DiscoveryRT' in SMARI.machines.keys():
+            SMARI.set_expected_ct_sim_results()
+        else:
+            SMARI.set_expected_linac_results()
+        toot = SMARI.machines
 
         for machine in SMARI.machines:
+            toot = SMARI.machines[machine]
             for date_key in SMARI.machines[machine]:
                 for test in SMARI.machines[machine][date_key]:
                     schedule_id = SMARI.machines[machine][date_key][test]['Schedule ID']
@@ -240,32 +251,38 @@ class SMARI:
 
         for root, dirs, files in os.walk(SMARI.input_path):
             for file in files:
-                try:
-                    image = dicom.dcmread(os.path.join(root, file))
-                    if hasattr(image, 'SeriesInstanceUID'):
-                        machine_name = image.StationName
-                        series_instance_uid = image.SeriesInstanceUID
-                        acquisition_date = image.AcquisitionDate[:6]
+                if '.dcm' in file:
+                    try:
+                        image = dicom.dcmread(os.path.join(root, file))
+                        if hasattr(image, 'SeriesInstanceUID'):
+                            machine_name = image.StationName
+                            series_instance_uid = image.SeriesInstanceUID
+                            if 'DiscoveryRT' in machine_name:
+                                acquisition_date = image.AcquisitionDate
+                            else:
+                                # Do not want the date of acquisiion for monthly QA so that CBCTs can be acquired on separate days
+                                acquisition_date = image.AcquisitionDate[:6]
 
-                        # Initialize the nested dictionaries if they don't exist
-                        if machine_name not in series_instance_id_dict:
-                            series_instance_id_dict[machine_name] = {}
+                            # Initialize the nested dictionaries if they don't exist
+                            if machine_name not in series_instance_id_dict:
+                                series_instance_id_dict[machine_name] = {}
 
-                        if acquisition_date not in series_instance_id_dict[machine_name]:
-                            series_instance_id_dict[machine_name][acquisition_date.rstrip()] = {}
+                            if acquisition_date not in series_instance_id_dict[machine_name]:
+                                series_instance_id_dict[machine_name][acquisition_date.rstrip()] = {}
 
-                        if series_instance_uid not in series_instance_id_dict[machine_name]:
-                            series_instance_id_dict[machine_name][acquisition_date][series_instance_uid] = {}
+                            if series_instance_uid not in series_instance_id_dict[machine_name]:
+                                series_instance_id_dict[machine_name][acquisition_date][series_instance_uid] = {}
 
-                        # Populate the nested dictionary
-                        series_instance_id_dict[machine_name][acquisition_date][series_instance_uid] = {
-                            "kvp": image.KVP,
-                            "mA": image.XRayTubeCurrent,
-                            "Acquisition Date": qat.format_date(image)
-                        }
-        
-                except Exception as e:
-                    print("There was an error:\n" + str(e))
+                            # Populate the nested dictionary
+                            series_instance_id_dict[machine_name][acquisition_date][series_instance_uid] = {
+                                "kvp": str(image.KVP),
+                                "mA": str(image.XRayTubeCurrent),
+                                "Acquisition Date": qat.format_date(image)
+                            }
+            
+                    except Exception as e:
+                        print("There was an error:\n" + str(e))
+
         if len(series_instance_id_dict.keys()) < 1:
             print("There were no files in the input folder.\n")
 
@@ -283,19 +300,41 @@ class SMARI:
 
                 for uid in folder_content[machine][date_key]:
                     for expected_machine in SMARI.machines:
-                        if machine == expected_machine:
+                        if machine in expected_machine:
                             for test in SMARI.machines[machine]['Tests']:
                                 if folder_content[machine][date_key][uid]['kvp'] == SMARI.machines[machine]['Tests'][test]['kvp'] and folder_content[machine][date_key][uid]['mA'] == SMARI.machines[machine]['Tests'][test]['mA']: 
+                                    toot = tqa.get_machine_id_from_str(machine.replace("ryRT", "ry RT"))
+                                    tooot = tqa.get_schedule_id_from_string(test, toot)
                                     updated_folder_content[machine][date_key][test] = {
                                         "UID": uid,
-                                        "Schedule ID": tqa.get_schedule_id_from_string(test, tqa.get_machine_id_from_str(machine)),
+                                        "Schedule ID": tqa.get_schedule_id_from_string(test, tqa.get_machine_id_from_str(machine.replace("ryRT", "ry RT"))),
                                         "Acquisition Date": folder_content[machine][date_key][uid]["Acquisition Date"],
                                         "Result Set ID": []
                                     }
 
         SMARI.machines = updated_folder_content
     
-    def set_expected_results():
+    def set_expected_ct_sim_results():
+        for machine in SMARI.machines:
+            toot = SMARI.machines
+            for date_key in SMARI.machines[machine]:
+                for test in SMARI.machines[machine][date_key]:
+                    if hasattr(SMARI.machines[machine][date_key][test], 'Results') == False:
+                        SMARI.machines[machine][date_key][test]['Results'] = {}
+                    if 'D3 - D4 - CT number for water - Noise and Uniformity' in test:
+                        macro_prefix = 'water'
+
+                    else:
+                        macro_prefix = ""
+                    SMARI.machines[machine][date_key][test]['Results']["_".join([macro_prefix, "cbct_geometric_distortion"])] = "Geometric distortion"
+                    SMARI.machines[machine][date_key][test]['Results']["_".join([macro_prefix, "cbct_spatial_resolution"])] = "Spatial resolution"
+                    SMARI.machines[machine][date_key][test]['Results']["_".join([macro_prefix, "cbct_hu_constancy"])] = "HU constancy"
+                    SMARI.machines[machine][date_key][test]['Results']["_".join([macro_prefix, "cbct_uniformity"])] = "Uniformity"
+                    SMARI.machines[machine][date_key][test]['Results']["_".join([macro_prefix, "cbct_noise"])] = "Noise"
+                    SMARI.machines[machine][date_key][test]['Results']["_".join([macro_prefix, "cbct_cnr"])] = "Low Contrast- CNR"
+                    SMARI.machines[machine][date_key][test]['Results']["_".join([macro_prefix, "cbct_slice_thickness"])] = "Average"
+
+    def set_expected_linac_results():
         for machine in SMARI.machines:
             for date_key in SMARI.machines[machine]:
                 for test in SMARI.machines[machine][date_key]:
