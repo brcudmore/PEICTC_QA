@@ -62,7 +62,7 @@ def identify_individual_film_strip_edges(roi):
     try:
         expected_film_strip_count = int(expected_film_strip_count.strip(" "))
     except:
-        expected_film_strip_count = input("\nPlease enter an integer\n")
+        expected_film_strip_count = int(input("\nPlease enter an integer\n").strip(" "))
 
     while expected_film_strip_count != film_strip_count:
         prominence -= 50
@@ -99,7 +99,7 @@ def calculate_junction(pixel_array: np.ndarray, roi_indices: dict, window: int =
     
 
     if save_figures == True:
-        film_strip_ids = input("\nThere were {} exposed film strips detected.\nPlease enter unique IDs in the order of left to right in exposed scan.\n".format(film_strip_count))
+        film_strip_ids = input("\nThere were {} exposed film strips detected.\nPlease enter unique IDs (separated by commas) in the order of left to right in exposed scan.\n".format(film_strip_count))
         film_strip_ids = film_strip_ids.split(",")
 
         while film_strip_count != len(film_strip_ids):
@@ -118,9 +118,8 @@ def calculate_junction(pixel_array: np.ndarray, roi_indices: dict, window: int =
 
         film_strip_center = int(((film_edges[i+1] - film_edges[i]) / 2) + film_edges[i])
         film_strip_roi = roi[film_strip_center - window : film_strip_center + window, :]
-        film_strip_roi_norm = normalize_max_to_100(film_strip_roi)
+        film_strip_roi_norm = normalize_to_mean(film_strip_roi)
         film_strip_profile = np.mean(film_strip_roi_norm, 0)
-        film_strip_profile = normalize_max_to_100(film_strip_profile)
 
         ###
         junction_dose = search_for_junction(film_strip_profile)
@@ -134,8 +133,13 @@ def calculate_junction(pixel_array: np.ndarray, roi_indices: dict, window: int =
         axs[0].set_title('Film Strip ROI {}'.format(film_strip_ids[i]))
         x_values_in_cm = np.arange(len(film_strip_profile)) * float(pixel_spacing) / 10
 
-        axs[1].set_ylim(([90, 110]))
+        axs[1].set_ylim(([89.9, 110.1]))
         axs[1].plot(x_values_in_cm, film_strip_profile)
+        axs[1].axhline(y= 95, color = 'orange', linestyle = '--')
+        axs[1].axhline(y= 90, color = 'r', linestyle = '--')
+        axs[1].axhline(y= 105, color = 'orange', linestyle = '--')
+        axs[1].axhline(y= 110, color = 'r', linestyle = '--')
+
         axs[1].set_title('Film Strip Profile')#:  Junction dose = {}%'.format(junction_dose))
         axs[1].set_ylabel('Dose (%)')
         axs[1].set_xlabel('Distance (cm)')
@@ -157,6 +161,21 @@ def search_for_junction(film_strip_profile):
     film_max = film_strip_profile.max()
     film_min = film_strip_profile.min()
 
+    ### New option
+
+    # find |max deviation from average|
+
+    junction = max(film_max-film_mean, film_mean - film_min)
+
+    if junction < 5:
+        print('Less than |5%|')
+        return 'Less than |5%|'
+    elif junction < 10:
+        print('Less than |10%|')
+        return 'Less than |10%|'
+    elif junction > 10:
+        print('Greater than |10%|')
+        return 'Greater than |10%|'
 
     if (film_max - film_mean) >= 10:
         junction_dose = film_max - film_mean
@@ -166,24 +185,32 @@ def search_for_junction(film_strip_profile):
     
     else:
         sign = 1
-        peak_location, peak_qualities = find_peaks(film_strip_profile, prominence= 2)
+        peak_location, peak_qualities = find_peaks(film_strip_profile, prominence= 3)
         
         if len(peak_location) == 1:
-            if peak_qualities['left_bases'][0] > len(film_strip_profile) * 0.25 or peak_qualities['right_bases'][0] < len(film_strip_profile) * 0.75:
-                peak_location, peak_qualities = find_peaks(-film_strip_profile, prominence= 2)
-                sign = -1
+            pass
 
+        
         elif len(peak_location) == 0:
-            return ('Less than 2')  
-         
+            # try inverting the dose profile to look for dips in dose
+            peak_location1, peak_qualities1 = find_peaks(-film_strip_profile, prominence= 3)
+            sign = -1
+
+            if len(peak_location1) == 0:
+                # no peaks with prominence greater than 3% found in profile or inverted profile
+                return ('Less than 3%')
+            else:
+                peak_qualities = peak_location1
+          
+
         junction_dose = peak_qualities['prominences'][0] * sign
     
-    return np.round(junction_dose, 1)
+    return np.round(junction_dose)
 
 
-def normalize_max_to_100(array):
+def normalize_to_mean(array):
     ### Need to decide how this is calculated
-    array_max = np.max(array)
+    # array_max = np.max(array)
     array_mean = np.mean(array)
     array = (array / array_mean) * 100
 
@@ -192,7 +219,7 @@ def normalize_max_to_100(array):
 file_path = ""
 pixel_spacing: float
 save_figures = True
-print("~ Monthly Jaw Position Accuracy (ML14) ~\n")
+print("~ Ad-Hoc Jaw Junctions ~\n")
 input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
 
 for dir_path, dir_names, file_names in os.walk(input_folder):

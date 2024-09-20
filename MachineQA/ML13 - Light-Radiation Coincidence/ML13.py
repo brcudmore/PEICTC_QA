@@ -283,11 +283,11 @@ def find_centroid_using_polynomial(x_values, peak, degree=4):
 
 
 def post_to_qatrack(linac, results_in_cm):
-    QATrack.log_into_QATrack()
-    utc_url, macros = QATrack.get_unit_test_collection(linac, "Light/Radiation Coincidence")
-    formatted_results = QATrack.format_results(macros, results_in_cm)
-    date = QATrack.format_date(image_path)
-    QATrack.post_results(utc_url, formatted_results, date)
+    qat.log_into_qat()
+    utc_url, macros = qat.get_unit_test_collection(linac, "Light/Radiation Coincidence")
+    formatted_results = qat.format_results(macros, results_in_cm)
+    date = qat.format_date(image_path)
+    qat.post_results(utc_url, formatted_results, date)
 
 def open_film_tif():
 
