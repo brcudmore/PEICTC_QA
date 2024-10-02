@@ -55,7 +55,7 @@ def get_roi_indices(irradiated_film):
     return roi_indices
 
 def identify_individual_film_strip_edges(roi):
-    expected_film_strip_count = input("\nPlease enter the number of irradiated film present\n")
+    expected_film_strip_count = input("Please enter the number of irradiated film present\n")
     film_strip_count = 0
     prominence = 1000
 
@@ -120,11 +120,11 @@ def calculate_junction(pixel_array: np.ndarray, roi_indices: dict, window: int =
         film_strip_roi = roi[film_strip_center - window : film_strip_center + window, :]
         film_strip_roi_norm = normalize_to_mean(film_strip_roi)
         film_strip_profile = np.mean(film_strip_roi_norm, 0)
-
+        print("\nProcessing {}".format(film_strip_ids[i]))
         ###
         junction_dose = search_for_junction(film_strip_profile)
         ###
-
+        print("\n")
 
         fig, axs = plt.subplots(2, 1, figsize=(10, 8))
 
@@ -140,7 +140,7 @@ def calculate_junction(pixel_array: np.ndarray, roi_indices: dict, window: int =
         axs[1].axhline(y= 105, color = 'orange', linestyle = '--')
         axs[1].axhline(y= 110, color = 'r', linestyle = '--')
 
-        axs[1].set_title('Film Strip Profile')#:  Junction dose = {}%'.format(junction_dose))
+        axs[1].set_title('Film Strip Profile:  Junction Dose {}'.format(junction_dose))
         axs[1].set_ylabel('Dose (%)')
         axs[1].set_xlabel('Distance (cm)')
 
@@ -156,63 +156,61 @@ def calculate_junction(pixel_array: np.ndarray, roi_indices: dict, window: int =
         
 def search_for_junction(film_strip_profile):
 
-    film_strip_profile = film_strip_profile[40:len(film_strip_profile)-40]
-    film_mean = np.mean(film_strip_profile)
     film_max = film_strip_profile.max()
     film_min = film_strip_profile.min()
 
-    ### New option
+    # film previouslt normalized mean to 100
 
-    # find |max deviation from average|
-
-    junction = max(film_max-film_mean, film_mean - film_min)
+    junction = max(film_max-100, 100 - film_min)
 
     if junction < 5:
-        print('Less than |5%|')
+        print('The junction dose is less than |5%|')
         return 'Less than |5%|'
     elif junction < 10:
-        print('Less than |10%|')
+        print('The junction dose is less than |10%|')
         return 'Less than |10%|'
     elif junction > 10:
-        print('Greater than |10%|')
+        print(junction)
+        print('The junction dose is Greater than |10%|')
         return 'Greater than |10%|'
 
-    if (film_max - film_mean) >= 10:
-        junction_dose = film_max - film_mean
+    # if (film_max - film_mean) >= 10:
+    #     junction_dose = film_max - film_mean
     
-    elif (film_min - film_mean) <= -10:
-        junction_dose = film_min - film_mean
+    # elif (film_min - film_mean) <= -10:
+    #     junction_dose = film_min - film_mean
     
-    else:
-        sign = 1
-        peak_location, peak_qualities = find_peaks(film_strip_profile, prominence= 3)
+    # else:
+    #     sign = 1
+    #     peak_location, peak_qualities = find_peaks(film_strip_profile, prominence= 3)
         
-        if len(peak_location) == 1:
-            pass
+    #     if len(peak_location) == 1:
+    #         pass
 
         
-        elif len(peak_location) == 0:
-            # try inverting the dose profile to look for dips in dose
-            peak_location1, peak_qualities1 = find_peaks(-film_strip_profile, prominence= 3)
-            sign = -1
+    #     elif len(peak_location) == 0:
+    #         # try inverting the dose profile to look for dips in dose
+    #         peak_location1, peak_qualities1 = find_peaks(-film_strip_profile, prominence= 3)
+    #         sign = -1
 
-            if len(peak_location1) == 0:
-                # no peaks with prominence greater than 3% found in profile or inverted profile
-                return ('Less than 3%')
-            else:
-                peak_qualities = peak_location1
+    #         if len(peak_location1) == 0:
+    #             # no peaks with prominence greater than 3% found in profile or inverted profile
+    #             return ('Less than 3%')
+    #         else:
+    #             peak_qualities = peak_location1
           
 
-        junction_dose = peak_qualities['prominences'][0] * sign
+    #     junction_dose = peak_qualities['prominences'][0] * sign
     
-    return np.round(junction_dose)
+    # return np.round(junction_dose)
 
 
 def normalize_to_mean(array):
     ### Need to decide how this is calculated
     # array_max = np.max(array)
-    array_mean = np.mean(array)
-    array = (array / array_mean) * 100
+    clipped_array = array[:, 40:array.shape[1]-40]
+    array_mean = np.mean(clipped_array)
+    array = (clipped_array / array_mean) * 100
 
     return array
    
