@@ -128,62 +128,62 @@ file_indices = {
         {
         'TB3426': 
             {
-            '6MV 1.3cm' : 7,
-            '6MV 1.3cm EDW in': 1,
-            '6MV 1.3cm EDW out': 2,
-            '6MV FFF 1.3cm': 8,
-            '10MV 2.3cm': 15,
-            '10MV 2.3cm EDW in': 3,
-            '10MV 2.3cm EDW out': 4,
-            '10MV FFF 2.3cm': 14, 
-            '18MV 2.3cm': 16,
-            '18MV 2.3cm EDW in': 5,
-            '18MV 2.3cm EDW out': 6,
+            '6MV 1.3cm' : 6,
+            '6MV 1.3cm EDW in': 0,
+            '6MV 1.3cm EDW out': 1,
+            '6MV FFF 1.3cm': 7,
+            '10MV 2.3cm': 14,
+            '10MV 2.3cm EDW in': 2,
+            '10MV 2.3cm EDW out': 3,
+            '10MV FFF 2.3cm': 13, 
+            '18MV 2.3cm': 15,
+            '18MV 2.3cm EDW in': 4,
+            '18MV 2.3cm EDW out': 5,
 
-            '6MV 10cm': 10,
-            '6MV FFF 10cm': 9,
-            '10MV 10cm': 12,
-            '10MV FFF 10cm': 13,
-            '18MV 10cm': 11,
+            '6MV 10cm': 9,
+            '6MV FFF 10cm': 8,
+            '10MV 10cm': 11,
+            '10MV FFF 10cm': 12,
+            '18MV 10cm': 10,
 
-            '6MeV 1.3cm': 17,
-            '6MeV 2.3cm': 18,
-            '9MeV 2.1cm': 19, # measured with MatriXX at 2.3 cm but baseline at 2.1 cm
-            '12MeV 2.0cm': 20, # measured with MatriXX at 2.3 cm but baseline at 2.0 cm
-            '9MeV 3.3cm': 21,
-            '12MeV 5.0cm': 22
+            '6MeV 1.3cm': 16,
+            '6MeV 2.3cm': 17,
+            '9MeV 2.1cm': 18, # measured with MatriXX at 2.3 cm but baseline at 2.1 cm
+            '12MeV 2.0cm': 19, # measured with MatriXX at 2.3 cm but baseline at 2.0 cm
+            '9MeV 3.3cm': 20,
+            '12MeV 5.0cm': 21
             },
 
         'TB5833': 
             {
-            '6MV 1.3cm': 1,
-            '6MV 1.3cm EDW in': 3,
-            '6MV 1.3cm EDW out': 4,
-            '6MV FFF 1.3cm': 2,
-            '10MV 2.3cm': 10,
-            '10MV 2.3cm EDW in': 5,
-            '10MV 2.3cm EDW out': 6,
-            '10MV FFF 2.3cm': 9,
-            '18MV 2.3cm': 11,
-            '18MV 2.3cm EDW in': 7,
-            '18MV 2.3cm EDW out': 8,
+            '6MV 1.3cm': 0,
+            '6MV 1.3cm EDW in': 2,
+            '6MV 1.3cm EDW out': 3,
+            '6MV FFF 1.3cm': 1,
+            '10MV 2.3cm': 9,
+            '10MV 2.3cm EDW in': 4,
+            '10MV 2.3cm EDW out': 5,
+            '10MV FFF 2.3cm': 8,
+            '18MV 2.3cm': 10,
+            '18MV 2.3cm EDW in': 6,
+            '18MV 2.3cm EDW out': 7,
 
-            '6MV 10cm': 13,
-            '6MV FFF 10cm': 12,
-            '10MV 10cm': 15,
-            '10MV FFF 10cm': 16,
-            '18MV 10cm': 14,
+            '6MV 10cm': 12,
+            '6MV FFF 10cm': 11,
+            '10MV 10cm': 14,
+            '10MV FFF 10cm': 15,
+            '18MV 10cm': 13,
 
-            '6MeV 1.3cm': 17,
-            '6MeV 2.3cm': 18,
-            '9MeV 2.3cm': 19,
-            '12MeV 2.3cm': 20,
-            '9MeV 3.3cm': 21,
-            '16MeV 3.3cm': 22,
-            '20MeV 3.3cm': 23,
-            '12MeV 5.0cm': 24,
-            '16MeV 6.5cm': 25,
-            '20MeV 8.5cm': 26
+            '6MeV 1.3cm': 16,
+            '6MeV 2.3cm': 17,
+            '9MeV 2.3cm': 18,
+            '12MeV 2.3cm': 19,
+            '9MeV 3.3cm': 20,
+            '16MeV 3.3cm': 21,
+            '20MeV 3.3cm': 22,
+            '12MeV 5.0cm': 23,
+            '16MeV 6.5cm': 24,
+            '20MeV 8.5cm': 25
             }
         },
 
@@ -191,62 +191,62 @@ file_indices = {
         {
         'TB3426': 
             {
-            '6MV 1.3cm' : 1,
-            '6MV 1.3cm EDW in': 2,
-            '6MV 1.3cm EDW out': 3,
-            '6MV FFF 1.3cm': 4,
-            '10MV 2.3cm': 5,
-            '10MV 2.3cm EDW in': 6,
-            '10MV 2.3cm EDW out': 7,
-            '10MV FFF 2.3cm': 8, 
-            '18MV 2.3cm': 9,
-            '18MV 2.3cm EDW in': 10,
-            '18MV 2.3cm EDW out': 11,
+            '6MV 1.3cm' : 0,
+            '6MV 1.3cm EDW in': 1,
+            '6MV 1.3cm EDW out': 2,
+            '6MV FFF 1.3cm': 3,
+            '10MV 2.3cm': 4,
+            '10MV 2.3cm EDW in': 5,
+            '10MV 2.3cm EDW out': 6,
+            '10MV FFF 2.3cm': 7, 
+            '18MV 2.3cm': 8,
+            '18MV 2.3cm EDW in': 9,
+            '18MV 2.3cm EDW out': 10,
 
-            '6MV 10cm': 12,
-            '6MV FFF 10cm': 13,
-            '10MV 10cm': 14,
-            '10MV FFF 10cm': 15,
-            '18MV 10cm': 16,
+            '6MV 10cm': 11,
+            '6MV FFF 10cm': 12,
+            '10MV 10cm': 13,
+            '10MV FFF 10cm': 14,
+            '18MV 10cm': 15,
 
-            '6MeV 1.3cm': 17,
-            '6MeV 2.3cm': 18,
-            '9MeV 2.1cm': 19, # measured with MatriXX at 2.3 cm but baseline at 2.1 cm
-            '12MeV 2.0cm': 20, # measured with MatriXX at 2.3 cm but baseline at 2.0 cm
-            '9MeV 3.3cm': 21,
-            '12MeV 5.0cm': 22
+            '6MeV 1.3cm': 16,
+            '6MeV 2.3cm': 17,
+            '9MeV 2.1cm': 18, # measured with MatriXX at 2.3 cm but baseline at 2.1 cm
+            '12MeV 2.0cm': 19, # measured with MatriXX at 2.3 cm but baseline at 2.0 cm
+            '9MeV 3.3cm': 20,
+            '12MeV 5.0cm': 21
             },
 
         'TB5833': 
             {
-            '6MV 1.3cm': 1,
-            '6MV 1.3cm EDW in': 2,
-            '6MV 1.3cm EDW out': 3,
-            '6MV FFF 1.3cm': 4,
-            '10MV 2.3cm': 5,
-            '10MV 2.3cm EDW in': 6,
-            '10MV 2.3cm EDW out': 7,
-            '10MV FFF 2.3cm': 8,
-            '18MV 2.3cm': 9,
-            '18MV 2.3cm EDW in': 10,
-            '18MV 2.3cm EDW out': 11,
+            '6MV 1.3cm': 0,
+            '6MV 1.3cm EDW in': 1,
+            '6MV 1.3cm EDW out': 2,
+            '6MV FFF 1.3cm': 3,
+            '10MV 2.3cm': 4,
+            '10MV 2.3cm EDW in': 5,
+            '10MV 2.3cm EDW out': 6,
+            '10MV FFF 2.3cm': 7,
+            '18MV 2.3cm': 8,
+            '18MV 2.3cm EDW in': 9,
+            '18MV 2.3cm EDW out': 10,
 
-            '6MV 10cm': 12,
-            '6MV FFF 10cm': 13,
-            '10MV 10cm': 14,
-            '10MV FFF 10cm': 15,
-            '18MV 10cm': 16,
+            '6MV 10cm': 11,
+            '6MV FFF 10cm': 12,
+            '10MV 10cm': 13,
+            '10MV FFF 10cm': 14,
+            '18MV 10cm': 15,
 
-            '6MeV 1.3cm': 17,
-            '6MeV 2.3cm': 18,
-            '9MeV 2.3cm': 19,
-            '12MeV 2.3cm': 20,
-            '9MeV 3.3cm': 21,
-            '16MeV 3.3cm': 22,
-            '20MeV 3.3cm': 23,
-            '12MeV 5.0cm': 24,
-            '16MeV 6.5cm': 25,
-            '20MeV 8.5cm': 26
+            '6MeV 1.3cm': 16,
+            '6MeV 2.3cm': 17,
+            '9MeV 2.3cm': 18,
+            '12MeV 2.3cm': 19,
+            '9MeV 3.3cm': 20,
+            '16MeV 3.3cm': 21,
+            '20MeV 3.3cm': 22,
+            '12MeV 5.0cm': 23,
+            '16MeV 6.5cm': 24,
+            '20MeV 8.5cm': 25
         }
     
     }
@@ -269,12 +269,14 @@ def get_test_positions(directory):
 def organize_data(input_folder):         
     files = []
     global acquisition_date
+    global file_indices
     
     # file indicies need to be sorted newest to oldest order. This next line ensure that happens regardless of how date keys are added to file_indices
     sorted_file_indices = dict(sorted(file_indices.items(), key=lambda item: datetime.strptime(item[0], '%Y-%m-%d'), reverse = True))
 
     for dir_path, dir_names, file_names in os.walk(input_folder):
-
+        if len(file_names) <1:
+            continue
         # can only process files if the file order at the time of acquisition is known
         file_creation_date = datetime.fromtimestamp(os.path.getctime(os.path.join(dir_path, file_names[0])))
         acquisition_date = qat.format_date(file_creation_date) # for QATrack

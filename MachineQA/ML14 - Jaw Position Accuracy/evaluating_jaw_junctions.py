@@ -1,3 +1,6 @@
+print("~ Ad-Hoc Jaw Junctions ~\n")
+print("Please wait while the app loads.\n")
+
 import pydicom as dicom
 import matplotlib.pyplot as plt
 import numpy as np
@@ -217,7 +220,7 @@ def normalize_to_mean(array):
 file_path = ""
 pixel_spacing: float
 save_figures = True
-print("~ Ad-Hoc Jaw Junctions ~\n")
+
 input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
 
 for dir_path, dir_names, file_names in os.walk(input_folder):
