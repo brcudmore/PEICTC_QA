@@ -11,8 +11,13 @@ import os
 import sys
 import base64
 
-# create executable by running the following while in the directory of the .py file
-# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --consol --clean ML14.py
+
+###
+
+# All functions are defined before the actual code is written. 
+# To follow along, please scroll to the bottom of the file.
+
+###
 
 sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
 from Helpers.QATrackHelpers import QATrack as qat
@@ -466,12 +471,13 @@ def find_center_of_rotation(cal_images):
         center['x'] = np.average([column1, column2])
 
 def process_folder(use_bb = False):
+
     global input_folder
-    
     date_list = []
     machine_list = []
     machine = ""
     input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
+    
     
     cal_images, analysis_images = organize_images(input_folder)
     find_center_of_rotation(cal_images)
@@ -619,6 +625,14 @@ def get_combined_image(image1, image2):
     # combined_image.save_as("T:\\_Physics Team PEICTC\\Benjamin\\_Test Development\\ML14 - Collimation Position Accuracy\\development\\finding_50_percent\\2024-07-31\\30x30 combined_image.dcm")
     return combined_image
 
+###
+
+# Created by Ben Cudmore
+# create executable by running the following while in the directory of the .py file
+# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --consol --clean ML14.py
+
+###
+
 
 input_folder = ''
 show_plots = False
@@ -626,6 +640,7 @@ all_results = {}
 attachments = []
 residuals_mm = {}
 center = {}
+
 
 machine, date = process_folder(use_bb = False)
 
