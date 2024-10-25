@@ -109,10 +109,11 @@ def measure_squares_in_cm(image, center, pixel_spacing_cm):
 
     plt.imshow(image)
 
+    # create a pretty figure for the person running the code
     draw_horizontal_lines(center['x'], center['y'], line_length= 2)
     draw_vertical_lines(center['x'], center['y'], line_length = 2)
 
-    # Note interpolated peaks are in correct order here; assigned correctly in "find_irradiated_edges()""
+    # Note interpolated peaks are in correct order here; assigned correctly in "find_irradiated_edges()"
     for result in results_in_pixels:
         if 'y1' in result:
             draw_horizontal_lines(center['x'], interpolated_peaks['Up-Down'][0])
@@ -130,15 +131,15 @@ def measure_squares_in_cm(image, center, pixel_spacing_cm):
 
     return results_in_cm
 
-def find_closest_index(x_values, data, search_value):
-    differences = list((abs(data[0:len(data)] - search_value)))
-    search_index = x_values[differences.index(min(differences))]
-    return search_index
+### Was used in development to verify a different approach ###
+
+# def find_closest_index(x_values, data, search_value):
+#     differences = list((abs(data[0:len(data)] - search_value)))
+#     search_index = x_values[differences.index(min(differences))]
+#     return search_index
 
 def abs_first_derivative_method(data):
 
-    # Calculate derivative from both directions and average results
-    flipped_data = data[::-1]
     first_derivative = savgol_filter(np.gradient(data), 5, 3) # for plot only
     first_derivative1 = abs(first_derivative)
     
@@ -152,14 +153,20 @@ def abs_first_derivative_method(data):
         plt.plot(first_derivative1)
         plt.show()
 
-    first_derivative2 = savgol_filter(abs(np.gradient(flipped_data)), 5, 3)
+    # Calculate derivative from both directions and average results
+    flipped_data = data[::-1]
+    first_derivative2 = abs(savgol_filter(np.gradient(flipped_data), 5, 3))
+
+    # Undo flip and average results
     first_derivative2 = first_derivative2[::-1]
     first_derivative = (first_derivative1 + first_derivative2) / 2
 
     return first_derivative
 
-def find_irradiated_edges(image, center_bb, combined_image = None):
+def find_irradiated_edges(image, center, combined_image = None):
 
+    # This function looks at two slightly off-centered strips of the pixel array for the x and y directions
+    # If jaws are not at 0, they are averaged, if the jaw is at 0 cm only the strip with relevant data is used
     if isinstance(image, np.ndarray):
         dicom_info = image
     else:
@@ -167,31 +174,33 @@ def find_irradiated_edges(image, center_bb, combined_image = None):
         image = image.pixel_array
 
     neighbors = 5
-    offset = 25 # want to avoid bb
 
-    # Get ROIs -offset of center bb
-    left_right_roi = savgol_filter(np.mean(image[int(center_bb['y']) - offset: int(center_bb['y']) - offset + neighbors, :], axis = 0), 5, 3)
-    up_down_roi = savgol_filter(np.mean(image[:, int(center_bb['x']) - offset: int(center_bb['x']) - offset + neighbors], axis = 1), 5, 3)
+    offset = 25
+
+    # Get ROIs - offset
+    left_right_roi = savgol_filter(np.mean(image[int(center['y']) - offset: int(center['y']) - offset + neighbors, :], axis = 0), 5, 3)
+    up_down_roi = savgol_filter(np.mean(image[:, int(center['x']) - offset: int(center['x']) - offset + neighbors], axis = 1), 5, 3)
     
 
-    # Get ROIs +offset of center bb
+    # Get ROIs + offset
     offset = - offset
-    left_right_roi1 = savgol_filter(np.mean(image[int(center_bb['y']) - offset: int(center_bb['y']) - offset + neighbors, :], axis = 0), 5, 3)
-    up_down_roi1 = savgol_filter(np.mean(image[:, int(center_bb['x']) - offset: int(center_bb['x']) - offset + neighbors], axis = 1), 5, 3)
+    left_right_roi1 = savgol_filter(np.mean(image[int(center['y']) - offset: int(center['y']) - offset + neighbors, :], axis = 0), 5, 3)
+    up_down_roi1 = savgol_filter(np.mean(image[:, int(center['x']) - offset: int(center['x']) - offset + neighbors], axis = 1), 5, 3)
     
 
-    # Will not average offsets if one of the jaws is at zero
+    # If only one offset strip has an edge it is chosen for future calculation 
     if min(left_right_roi) - min(left_right_roi1) > 2000:
         left_right_roi = left_right_roi1
 
     elif min(left_right_roi) - min(left_right_roi1) < -2000:
         left_right_roi = left_right_roi
 
-    else:
-        # Average the two ROIs 
+    # Offset strips are averaged if they both detect edges
+    else: 
         left_right_roi = (left_right_roi + left_right_roi1)/2
     
-    # Will not average offsets if one of the jaws is at zero
+
+    # Same as above
     if min(up_down_roi) - min(up_down_roi1) > 2000:
         up_down_roi = up_down_roi1
 
@@ -199,9 +208,7 @@ def find_irradiated_edges(image, center_bb, combined_image = None):
         up_down_roi = up_down_roi
 
     else:
-        up_down_roi = up_down_roi1
-        # Average the two ROIs 
-        # up_down_roi = (up_down_roi + up_down_roi1)/2
+        up_down_roi = (up_down_roi + up_down_roi1)/2
 
 
     # Get absolute of derivative of profiles to identify inflection points in high gradient regions (a.k.a. jaws)
@@ -209,12 +216,12 @@ def find_irradiated_edges(image, center_bb, combined_image = None):
     up_down_roi = abs_first_derivative_method(up_down_roi)
 
     # Find indices of peaks in absolute derivative profile (a.k.a. inflection points) in pixels
-    
     peaks_found = {}
     interpolated_peaks = {}
 
     peaks_found["Left-Right"] = find_jaws(left_right_roi, "Left-Right")
     interpolated_peaks["Left-Right"] = find_peak_center(left_right_roi, peaks_found["Left-Right"])
+
     if show_plots == True:
         plt.title("Peaks found in {} direction".format("Left-Right"))
         plt.show()
@@ -229,65 +236,67 @@ def find_irradiated_edges(image, center_bb, combined_image = None):
     else:
         plt.close()
 
-    # calculate distance from jaw to center bb to get position in pixels
-    # Note: Y2 is the first up-down
+    # calculate distance from jaw to center (bb or center of collimator rotation; defined in main function) to get position in pixels
+    # Note: Y2 is the first jaw in the up-down direction
     results = {
-        "x1": (center_bb['x'] - interpolated_peaks['Left-Right'][0]),
-        "x2": (interpolated_peaks['Left-Right'][1] - center_bb['x']),
-        "y1": (interpolated_peaks['Up-Down'][1] - center_bb['y']),
-        "y2": (center_bb['y'] - interpolated_peaks['Up-Down'][0])
+        "x1": (center['x'] - interpolated_peaks['Left-Right'][0]),
+        "x2": (interpolated_peaks['Left-Right'][1] - center['x']),
+        "y1": (interpolated_peaks['Up-Down'][1] - center['y']),
+        "y2": (center['y'] - interpolated_peaks['Up-Down'][0])
     }
 
-    if combined_image:
-        left, right = find_50_percent_dose(left_right_roi, combined_image["Left-Right"]) 
+    ### Was used in development to verify a different approach ###
 
-        up, down = find_50_percent_dose(up_down_roi, combined_image["Up-Down"]) 
-        interpolated_peaks["Left-Right"] = [left, right]
-        interpolated_peaks["Up-Down"] = [up, down]
+    # if combined_image:
+    #     left, right = find_50_percent_dose(left_right_roi, combined_image["Left-Right"]) 
 
-        results = {
-        "x1": (center_bb['x'] - left),
-        "x2": (right - center_bb['x']),
-        "y1": (down - center_bb['y']),
-        "y2": (center_bb['y'] - up)
-    }
+    #     up, down = find_50_percent_dose(up_down_roi, combined_image["Up-Down"]) 
+    #     interpolated_peaks["Left-Right"] = [left, right]
+    #     interpolated_peaks["Up-Down"] = [up, down]
+
+    #     results = {
+    #     "x1": (center['x'] - left),
+    #     "x2": (right - center['x']),
+    #     "y1": (down - center['y']),
+    #     "y2": (center['y'] - up)
+    # }
         
-        pixel_spacing_mm = dicom_info.ImagePlanePixelSpacing[0]
-        magnification_factor = dicom_info.RadiationMachineSAD / dicom_info.RTImageSID
-        pixel_spacing_cm = pixel_spacing_mm * magnification_factor / 10
-        results_in_cm = {}
+    #     pixel_spacing_mm = dicom_info.ImagePlanePixelSpacing[0]
+    #     magnification_factor = dicom_info.RadiationMachineSAD / dicom_info.RTImageSID
+    #     pixel_spacing_cm = pixel_spacing_mm * magnification_factor / 10
+    #     results_in_cm = {}
 
-        for jaw in results:
-            results_in_cm[jaw] = results[jaw] * pixel_spacing_cm
-            print(results_in_cm[jaw])
-            if results_in_cm[jaw] < 0.5 and results_in_cm[jaw]  > -0.5:
-                macro = jaw +"_position_0mm"
-                all_results[macro] = results_in_cm[jaw]
+    #     for jaw in results:
+    #         results_in_cm[jaw] = results[jaw] * pixel_spacing_cm
+    #         print(results_in_cm[jaw])
+    #         if results_in_cm[jaw] < 0.5 and results_in_cm[jaw]  > -0.5:
+    #             macro = jaw +"_position_0mm"
+    #             all_results[macro] = results_in_cm[jaw]
 
-            if results_in_cm[jaw] < 1.5 and results_in_cm[jaw]  > 0.5:
-                macro = jaw +"_position_10mm"
-                all_results[macro] = results_in_cm[jaw]
+    #         if results_in_cm[jaw] < 1.5 and results_in_cm[jaw]  > 0.5:
+    #             macro = jaw +"_position_10mm"
+    #             all_results[macro] = results_in_cm[jaw]
 
-            if results_in_cm[jaw] < 3 and results_in_cm[jaw]  > 2:
-                macro = jaw +"_position_25mm"
-                all_results[macro] = results_in_cm[jaw]
+    #         if results_in_cm[jaw] < 3 and results_in_cm[jaw]  > 2:
+    #             macro = jaw +"_position_25mm"
+    #             all_results[macro] = results_in_cm[jaw]
 
-            if results_in_cm[jaw] < 5.5 and results_in_cm[jaw]  > 4.5:
-                macro = jaw +"_position_50mm"
-                all_results[macro] = results_in_cm[jaw]
+    #         if results_in_cm[jaw] < 5.5 and results_in_cm[jaw]  > 4.5:
+    #             macro = jaw +"_position_50mm"
+    #             all_results[macro] = results_in_cm[jaw]
 
-            if results_in_cm[jaw] < 8 and results_in_cm[jaw]  > 7:
-                macro = jaw +"_position_75mm"
-                all_results[macro] = results_in_cm[jaw]
+    #         if results_in_cm[jaw] < 8 and results_in_cm[jaw]  > 7:
+    #             macro = jaw +"_position_75mm"
+    #             all_results[macro] = results_in_cm[jaw]
 
-            if results_in_cm[jaw] < 10.5 and results_in_cm[jaw]  > 9.5:
-                macro = jaw +"_position_100mm"
-                all_results[macro] = results_in_cm[jaw]
+    #         if results_in_cm[jaw] < 10.5 and results_in_cm[jaw]  > 9.5:
+    #             macro = jaw +"_position_100mm"
+    #             all_results[macro] = results_in_cm[jaw]
 
-            if results_in_cm[jaw] < 15.5 and results_in_cm[jaw]  > 14.5:
-                macro = jaw +"_position_150mm"
-                all_results[macro] = results_in_cm[jaw]
-        print("\n\n")
+    #         if results_in_cm[jaw] < 15.5 and results_in_cm[jaw]  > 14.5:
+    #             macro = jaw +"_position_150mm"
+    #             all_results[macro] = results_in_cm[jaw]
+    #     print("\n\n")
 
     return results, interpolated_peaks
 
@@ -308,6 +317,7 @@ def find_jaws(roi,roi_id):
     max_height = 2000
     min_height = 50
 
+    # There should only be two peaks in either axis (columns or rows; one peak for each jaw)
     while len(peaks_found) != 2:
         peaks_found, _ = find_peaks(roi, prominence= 0.2, height = (min_height, max_height))
         min_height += 10
@@ -325,7 +335,9 @@ def find_jaws(roi,roi_id):
     find_peak_center(roi, peaks_found)
     return peaks_found
 
-def calculate_ML14(file, use_bb = True):
+def calculate_ML14(file, use_bb = False):
+    
+    # global center was updated in find_center_of_rotation()
     global center
 
     if isinstance(file, str):
@@ -338,12 +350,14 @@ def calculate_ML14(file, use_bb = True):
     col_angle = dicom_info.BeamLimitingDeviceAngle
     pixel_info = dicom_info.pixel_array
 
+    # Analysis images at 270° or 90° are rotated for correct labeling of jaws
     if "270" in str(round(col_angle)):
         pixel_info = np.rot90(pixel_info)
     
     if "90" in str(round(col_angle)):
         pixel_info = np.rot90(np.rot90(np.rot90(pixel_info)))
 
+    # this is a backup variable incase the global center wasn't able to be calculated earlier in the code
     pixel_center = {
         "x": int(pixel_info.shape[0]//2),
         "y": int(pixel_info.shape[1]//2)
@@ -363,8 +377,10 @@ def calculate_ML14(file, use_bb = True):
     magnification_factor = dicom_info.RadiationMachineSAD / dicom_info.RTImageSID
     pixel_spacing_cm = pixel_spacing_mm * magnification_factor / 10
     
+    # calculates distance from each jaw to center then applies magnification factor
     results_in_cm = measure_squares_in_cm(pixel_info, center, pixel_spacing_cm)
 
+    # update macros to match what is in QATrack for posting test list
     for jaw in results_in_cm:
         if results_in_cm[jaw] < 0.5 and results_in_cm[jaw]  > -0.5:
             macro = jaw +"_position_0mm"
@@ -399,16 +415,19 @@ def calculate_ML14(file, use_bb = True):
 def organize_images(input_folder):
     analysis_images = {}
     cal_images = []
+
+    #sort through all dicom images
     for dir_path, dir_names, file_names in os.walk(input_folder):
         for file in file_names:
             if ".dcm" in file:
                 file_path = os.path.join(dir_path, file)
                 dicom_info = dicom.dcmread(file_path)
 
+                # ignore plans, dose, etc
                 if not "RTIMAGE" in dicom_info.Modality:
                     continue
-                file_path = os.path.join(dir_path, file)
-                dicom_info = dicom.dcmread(file_path)
+                
+                # cal images are taken at 90° and 270°
                 if np.round(dicom_info.BeamLimitingDeviceAngle) == 90 or np.round(dicom_info.BeamLimitingDeviceAngle) == 270:
                     cal_images.append(dicom_info)
                     
@@ -429,8 +448,19 @@ def organize_images(input_folder):
     return cal_images, analysis_images
 
 def find_center_of_rotation(cal_images):
+
+    # Global center variable is updated in this function to be used in calculate_ML14
+
     global center
     center_of_rotation = {'270': float, '90': float}
+
+    # This function compares each jaw with itself after a 180° collimator rotation.
+
+    # Because the jaw doesn't move, we know the distance between one jaw across 
+    # both images is the center of rotation for that axis.
+
+    # Jaw pair results are averaged but have been observed to be consistent
+
     for dicom_info in cal_images:
         col_angle = dicom_info.BeamLimitingDeviceAngle
         pixel_info = dicom_info.pixel_array
@@ -438,7 +468,7 @@ def find_center_of_rotation(cal_images):
         if "270" in str(round(col_angle)):
             cal_270 = True
             center = {'x': pixel_info.shape[0]//2, 'y': pixel_info.shape[1]//2}
-            results, interpolated_peaks = find_irradiated_edges(pixel_info, center)
+            _, interpolated_peaks = find_irradiated_edges(pixel_info, center)
             center_of_rotation['270'] = {
                     'x1': interpolated_peaks["Up-Down"][0],
                     'x2': interpolated_peaks["Up-Down"][1],
@@ -449,7 +479,7 @@ def find_center_of_rotation(cal_images):
         elif "90" in str(round(col_angle)):
             cal_90 = True
             center = {'x': pixel_info.shape[0]//2, 'y': pixel_info.shape[1]//2}
-            results, interpolated_peaks = find_irradiated_edges(pixel_info, center)
+            _, interpolated_peaks = find_irradiated_edges(pixel_info, center)
             center_of_rotation['90'] = {
                     'x1': interpolated_peaks["Up-Down"][1],
                     'x2': interpolated_peaks["Up-Down"][0],
@@ -471,7 +501,8 @@ def find_center_of_rotation(cal_images):
         # that is of interest. Slightly different for Y1 and Y2 so an average is calculated
         column1 = ((center_of_rotation["90"]['y1'] - center_of_rotation["270"]['y1'])/2) + center_of_rotation["270"]['y1']
         column2 = ((center_of_rotation["270"]['y2'] - center_of_rotation["90"]['y2'])/2) + center_of_rotation["90"]['y2']  
-        # Columns are 'x' because this is (x,y) notation when looking at figure  
+        # Columns are 'x' because this is (x,y) notation when looking at figure 
+        
         center['x'] = np.average([column1, column2])
 
 def process_folder(use_bb = False):
@@ -482,6 +513,8 @@ def process_folder(use_bb = False):
     machine = ""
 
     input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
+
+    # returns false if more than one dataset is entered
     cal_images, analysis_images = organize_images(input_folder)
     
     while cal_images == False:
@@ -492,34 +525,38 @@ def process_folder(use_bb = False):
     count = 0
 
     for irradiation_event in analysis_images:
-        # update == to 2 to process combined images
-        if len(analysis_images[irradiation_event]) == 5:
-            image_50_percent = analysis_images[irradiation_event][0].pixel_array
-            combined_image = get_combined_image(analysis_images[irradiation_event][0], analysis_images[irradiation_event][1])
 
-            _, interpolated_peaks = find_irradiated_edges(image_50_percent, center)
-            left_right, up_down = find_80_percent_width(interpolated_peaks)
+        ### Was used in development to verify a different approach ###
 
-            left = int(center['y'] - (left_right / 2))
-            right = int(center['y'] + (left_right / 2))
-            up = int(center['y'] - (up_down / 2))
-            down = int(center['y'] + (up_down / 2))
+        # # update == to 2 to process combined images
+        # if len(analysis_images[irradiation_event]) == 5:
+        #     image_50_percent = analysis_images[irradiation_event][0].pixel_array
+        #     combined_image = get_combined_image(analysis_images[irradiation_event][0], analysis_images[irradiation_event][1])
+
+        #     _, interpolated_peaks = find_irradiated_edges(image_50_percent, center)
+        #     left_right, up_down = find_80_percent_width(interpolated_peaks)
+
+        #     left = int(center['y'] - (left_right / 2))
+        #     right = int(center['y'] + (left_right / 2))
+        #     up = int(center['y'] - (up_down / 2))
+        #     down = int(center['y'] + (up_down / 2))
             
-            left_right_mean_80_percent = np.mean(image_50_percent[int(center['y']) - 10 : int(center['y'])+ 10, left:right])
-            up_down_mean_80_percent = np.mean(image_50_percent[up:down, int(center['x']) - 10 : int(center['x'])+ 10])
+        #     left_right_mean_80_percent = np.mean(image_50_percent[int(center['y']) - 10 : int(center['y'])+ 10, left:right])
+        #     up_down_mean_80_percent = np.mean(image_50_percent[up:down, int(center['x']) - 10 : int(center['x'])+ 10])
     
 
-            results, interpolated_peaks = find_irradiated_edges(combined_image, center, combined_image = \
-                                                         {"Left-Right": left_right_mean_80_percent,
-                                                          "Up-Down": up_down_mean_80_percent})
-            machine = combined_image.RadiationMachineName
-            date = qat.format_date(combined_image)
+        #     results, interpolated_peaks = find_irradiated_edges(combined_image, center, combined_image = \
+        #                                                  {"Left-Right": left_right_mean_80_percent,
+        #                                                   "Up-Down": up_down_mean_80_percent})
+        #     machine = combined_image.RadiationMachineName
+        #     date = qat.format_date(combined_image)
         
-        else:
-            count += 1
-            print("\nResults from image {}.".format(count))
-            dicom_info = analysis_images[irradiation_event][-1]
-            machine, date = calculate_ML14(dicom_info, use_bb)
+        # else:
+
+        count += 1
+        print("\nResults from image {}.".format(count))
+        dicom_info = analysis_images[irradiation_event][-1]
+        machine, date = calculate_ML14(dicom_info, use_bb)
 
 
         if machine not in machine_list:
@@ -531,7 +568,7 @@ def process_folder(use_bb = False):
             residuals_mm[result] = (all_results[result] - (float(result.split("_")[-1].strip("m")) /10))*10
 
     if len(machine_list) > 1:
-        print("Please process one machine at a time. Process restarting")
+        print("Please process one machine at a time. Process restarting.")
         return False, False
 
     if len(date_list) > 1:
@@ -539,7 +576,7 @@ def process_folder(use_bb = False):
 
     return machine, date
 
-def calculate_average_deviation():
+def summarize_results_png():
     global attachments
     jaws = {"x1": {},
             "x2": {},
@@ -612,13 +649,15 @@ def interpolate_data(data, points = 20):
 
     return x_values, interp_data
 
-def find_50_percent_dose(data, search_value):
-    data1 = data[0:len(data)//2]
-    data2 = data[len(data)//2: len(data)]
-    index1 = find_closest_index(data1, search_value)
-    index2 = find_closest_index(data2, search_value) + len(data) / 2
+### Was used in development to verify a different approach ###
 
-    return index1, index2
+# def find_50_percent_dose(data, search_value):
+#     data1 = data[0:len(data)//2]
+#     data2 = data[len(data)//2: len(data)]
+#     index1 = find_closest_index(data1, search_value)
+#     index2 = find_closest_index(data2, search_value) + len(data) / 2
+
+#     return index1, index2
 
 def get_combined_image(image1, image2):
 
@@ -633,6 +672,10 @@ def get_combined_image(image1, image2):
     # combined_image.save_as("T:\\_Physics Team PEICTC\\Benjamin\\_Test Development\\ML14 - Collimation Position Accuracy\\development\\finding_50_percent\\2024-07-31\\30x30 combined_image.dcm")
     return combined_image
 
+
+
+
+
 ###
 
 # Created by Ben Cudmore
@@ -640,6 +683,8 @@ def get_combined_image(image1, image2):
 # pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --consol --clean ML14.py
 
 ###
+
+
 
 
 input_folder = ''
@@ -652,10 +697,10 @@ center = {}
 
 machine, date = process_folder(use_bb = False)
 
-calculate_average_deviation()
-
 while machine == False:
     machine, date = process_folder()
+
+summarize_results_png()
 
 print("\nPosting to QATrack...\n")
 qat.log_into_QATrack()
