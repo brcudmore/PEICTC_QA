@@ -7,14 +7,17 @@ import numpy as np
 from scipy.signal import find_peaks, medfilt
 import datetime as datetime
 import os
-import sys
 
 from time import sleep
 
-###
 
-# All functions are defined before the actual code is written. 
-# To follow along, please scroll to the bottom of the file.
+### 
+
+# Create by Ben Cudmore
+# Package this code as an executable by running the following line in the terminal:
+# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --clean evaluating_jaw_junctions.py
+
+# START READING AFTER FUNCTIONS DEFINED
 
 ###
 
@@ -22,25 +25,33 @@ def find_film_roi(pixel_array):
 
     # this function find the exposed film by iterating over every nth row and column 
     # to find pixel values over a threshold.
-    # the threshold has been updated from 40,000 (EBT3) to 5,000 (EBT4)
+
+    # the threshold value needs to be 40,000 for EBT3 and 5,000 for EBT4
     
-    threshold = 5000
+    threshold = 40000
 
     film_rows = []
     film_columns = []
 
     # pixel_array is heavily blurred so gaps between film strips are not detected
     blurred_pixel_array = medfilt(pixel_array, 21)
+    count = 0
+    while len(film_rows) <= 1:
+        count+=1
+        for i in range(10, blurred_pixel_array.shape[1], 10):
+            search = blurred_pixel_array[:, i].max()
+            if search > threshold:
+                film_columns.append(i)
 
-    for i in range(10, blurred_pixel_array.shape[1], 10):
-        search = blurred_pixel_array[:, i].max()
-        if search > threshold:
-            film_columns.append(i)
+        for i in range(10, blurred_pixel_array.shape[0], 10):
+            search = blurred_pixel_array[i, :].max()
+            if search > threshold:
+                film_rows.append(i)
 
-    for i in range(10, blurred_pixel_array.shape[0], 10):
-        search = blurred_pixel_array[i, :].max()
-        if search > threshold:
-            film_rows.append(i)
+        threshold = 4000
+
+        if count >= 2:
+            break
 
     return {
         'rows': film_rows,
@@ -53,7 +64,7 @@ def get_roi_indices(irradiated_film):
     
     roi_indices = {}
     roi_factor = 0.85
-
+    
     for key in irradiated_film:
         #look at (e.g.) rows first
         direction = irradiated_film[key]
@@ -78,9 +89,10 @@ def identify_individual_film_strip_edges(roi):
 
     # this function ensures the threshold value (minprominence) for identifying individual film strips
     expected_film_strip_count = input("Please enter the number of irradiated film present\n")
+    print("\n")
     film_strip_count = 0
-    max_prominence = 400
-    min_prominence = 200
+    max_prominence = 300
+    min_prominence = 50
 
     try:
         expected_film_strip_count = int(expected_film_strip_count.strip(" "))
@@ -94,7 +106,9 @@ def identify_individual_film_strip_edges(roi):
         edges = []
 
         search = np.abs(np.gradient(np.mean(roi[:, 40:70], 1)))
-        peaks, _ = find_peaks(search, prominence = min_prominence, distance = 50)
+
+        # added max prominence of 5000 so that unused film is not detected
+        peaks, _ = find_peaks(search, prominence = [min_prominence, 5000], distance = 50)
         
         ### run this code to see the plots
         # plt.imshow(roi)
@@ -110,7 +124,7 @@ def identify_individual_film_strip_edges(roi):
 
         # Something is wrong if prominence reaches 0. This prevents the loop from running indefinitely
         if min_prominence >= max_prominence:
-            print("The code could not find exactly {} exposed film strips. Make sure all exposed film are adjacent to eachother in the exposed scan.".format(expected_film_strip_count))
+            print("The code could not find exactly {} exposed film strips.\nMake sure all exposed film are adjacent to eachother in the exposed scan.\n".format(expected_film_strip_count))
             sleep(1)
             return(False, False)
 
@@ -227,13 +241,15 @@ def normalize_to_mean(array):
     return array
 
 
-### 
+file_path1 = "T:\\QA\\Data\\JawCalibration\\TrueBeam5833\\2024-10\\Results\\testing2\\FilmQA_EBT-Dose_LRA-Lewis_MedFilt-9px.dcm"
+file_path0 = "T:\\QA\\Data\\JawCalibration\\TrueBeam5833\\2024-10\\Results\\FilmQA_EBT-Dose_LRA-Lewis_MedFilt-9px.dcm"
 
-# Create by Ben Cudmore
-# Package this code as an executable by running the following line in the terminal
-# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --clean ML14.py
+file0 = dicom.dcmread(file_path0).pixel_array
+file1 = dicom.dcmread(file_path1).pixel_array
 
-###
+file_diff = file0-file1
+plt.imshow(file_diff)
+plt.show()
 
 file_path = ""
 pixel_spacing: float
@@ -242,7 +258,8 @@ save_figures = True
 input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
 
 # Process each dicom dose plane in the selected folder
-# Dicom dose plans are create in MATLAB by entering filmqa in the command line 
+# Dicom dose planes are create in MATLAB by entering filmqa in the command line
+
 for dir_path, dir_names, file_names in os.walk(input_folder):
     for file in file_names:
         if ".dcm" in file:
