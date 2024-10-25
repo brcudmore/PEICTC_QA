@@ -10,7 +10,7 @@ import datetime as datetime
 import os
 import sys
 import base64
-
+from time import sleep
 
 ###
 
@@ -399,7 +399,6 @@ def calculate_ML14(file, use_bb = True):
 def organize_images(input_folder):
     analysis_images = {}
     cal_images = []
-
     for dir_path, dir_names, file_names in os.walk(input_folder):
         for file in file_names:
             if ".dcm" in file:
@@ -421,6 +420,11 @@ def organize_images(input_folder):
                     else:
                         analysis_images[irradiation_event] = []
                         analysis_images[irradiation_event].append(dicom_info)
+    
+    if len(cal_images) > 2:
+        print("\nThere are more images than expected for this test list.\nVerify the folder structure only has one dataset.\n")
+        sleep(2)
+        return False, False
     
     return cal_images, analysis_images
 
@@ -476,10 +480,14 @@ def process_folder(use_bb = False):
     date_list = []
     machine_list = []
     machine = ""
+
     input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
-    
-    
     cal_images, analysis_images = organize_images(input_folder)
+    
+    while cal_images == False:
+        input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
+        cal_images, analysis_images = organize_images(input_folder)
+
     find_center_of_rotation(cal_images)
     count = 0
 
