@@ -124,6 +124,13 @@ class QATrack:
         elif isinstance(date_source, datetime.datetime):
             date = date_source.strftime(date_format)
 
+        elif isinstance(date_source, str) and os.path.exists(date_source):
+            creation_time = os.path.getctime(date_source)
+            datetime_object = datetime.datetime.fromtimestamp(creation_time)
+            formatted_date = datetime_object.strftime(date_format)
+            return formatted_date
+
+
         elif ".dcm" in date_source:
             date = datetime.datetime.strptime(date_source['Acquisition_Date'], "%b %d/%y")
             date.strftime(date_format)

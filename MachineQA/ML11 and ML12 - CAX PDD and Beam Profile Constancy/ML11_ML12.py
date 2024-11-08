@@ -1,8 +1,8 @@
 print("~ Monthly Energy and Beam Profile Constancy ~\n")
 print("Please wait while the app loads.\n")
 
-from matplotlib import pyplot as plt
-from scipy.signal import medfilt2d
+# from matplotlib import pyplot as plt
+# from scipy.signal import medfilt2d
 
 import numpy as np
 import os as os
@@ -13,117 +13,25 @@ from datetime import datetime
 sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
 from Helpers.QATrackHelpers import QATrack as qat
 
-### This code stores the inline and crossline profiles in memory. Next step is to plot them for the user.
+###
 
-all_baselines = {
-    'TB3426': {
-        #   Baseline values for photons correspond to variable 'phAveBaselinesROI' and electrons corresponding to variable 'electronBaselineROI' generated using
-        #   'T:\MATLAB\ML12_TB_Baselines.m'. The MATLAB code performs linear interpolation of commissioning data from OmniPro (100 SSD, 20x20 cm^2, 10cm depth) to 
-        #   match detector positions in MatriXX. For photons, baselines points are derived for inline and crossline profiles separately then averaged.
-        #   Electron baselines are only crossline.
+# Created by Ben Cudmore
+# create executable by running the following while in the directory of the .py file
+# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --consol --clean ML11_ML12.py
 
-        '6MV 10cm': np.array([
-            0.981001,	0.99092925,	0.99785775,	1.003,	1.005,	1.004,	1.00364275,	1.005,	
-            1.00452375,	1.0025,	1.001,	1.001,	1.0025,	1.00452375,	1.005,	1.00364275,	
-            1.004,	1.005,	1.003,	0.99785775,	0.99092925,	0.981001]),
+###
 
-        '6MV FFF 10cm': np.array([
-            0.81200175,	0.839478,	0.8657155,	0.89014375,	0.91366775,	0.93523875,	0.95500075,	
-            0.9715005,	0.985405,	0.99385725,	1.0001905,	1.0001905, 0.99385725,	0.985405,	
-            0.9715005,	0.95500075,	0.93523875,	0.91366775,	0.89014375,	0.8657155,	0.839478,	
-            0.81200175]),
 
-        '10MV 10cm': np.array([
-            0.99350025,	1.00030975,	1.00585775,	1.00942875,	1.011,	1.0104045,	1.00914275,	
-            1.007,	1.0055,	1.002,	1,	1,	1.002,	1.0055,	1.007, 1.00914275,	1.0104045,	
-            1.011,	1.00942875,	1.00585775,	1.00030975,	0.99350025]),
+# Any time the field order changes for one of the plans you have to update the field order in the file_indices variable
+#   To do this, add a new date key when the change took place in yyyy-mm-dd format, then add ALL linacs.
 
-        '10MV FFF 10cm': np.array([
-            0.700002,	0.73190725,	0.76507325,	0.79843,	0.83264425,	0.866882,	0.901358,	
-            0.934834,	0.96331,	0.98592875,	0.99859525,	0.99859525,	0.98592875,	0.96331,	
-            0.934834,	0.901358,	0.866882,	0.83264425,	0.79843,	0.76507325,	0.73190725,	
-            0.700002]),
+# To add a new linac (e.g. future TreBeam) to this test list, A new linac key will have to be added.
+# search this code for "### Needs to be updated when new linac added ###" to find areas which need to be updated for the addition of a new linac.
 
-        '18MV 10cm': np.array([
-            1.01350025,	1.0185,	1.021,	1.022,	1.0225,	1.02145225,	1.0182855,	1.01149975,	
-            1.00557125,	1.0025,	1,	1,	1.0025,	1.00557125,	1.01149975, 1.0182855,	1.02145225,	
-            1.0225,	1.022,	1.021,	1.0185,	1.01350025]),
 
-        '6MeV 1.3cm': np.array([
-            0.966001,  0.9786195,	0.9862385,	0.9908575,	0.994,	0.997,	0.998,	0.999,	
-            0.999,	1,	1,	1,	1,	0.999,	0.999,	0.998,	0.997,	0.994,	0.9908575,
-            0.9862385,  0.9786195,	0.966001]),
-
-        '9MeV 2.1cm': np.array([
-            1.005001,  1.0126195,	1.013,	1.0121425,	1.01,	1.007,	1.005,	1.003,	
-            1.002,	1.001,	1,	1,	1.001,	1.002,	1.003,	1.005,	1.007,	1.01,	1.0121425,	
-            1.013,  1.0126195,	1.005001]),
-            
-        '12MeV 2.0cm': np.array([
-            1.011, 1.011,	1.01,	1.0071425,	1.005,	1.003,	1.002,	1.001,	1,	1,	1,	1,
-            1,	1,	1.001,	1.002,	1.003,	1.005,	1.0071425,	1.01,	1.011, 1.011])
-    },
-    'TB5833': {
-        # Data found in T:\TrueBeam5833\Commissioning\Beam Scanning\MatriXX Baselines
-        # 
-        '6MV 10cm': np.array([
-            0.981, 0.99062, 
-            0.99724, 1.0019, 1.004, 1.004, 1.004, 1.0043, 1.004, 1.0024, 
-            1, 1, 1.0024, 1.004, 1.0043, 1.004, 1.004, 1.004, 1.0019, 
-            0.99724, 0.99062, 0.981]),
-
-        '6MV FFF 10cm': np.array([
-            0.813, 0.84086, 
-            0.86695, 0.89157, 0.91543, 0.93629, 0.95614, 0.97267, 0.98591, 
-            0.99557, 1, 1, 0.99557, 0.98591, 0.97267, 0.95614, 0.93629, 
-            0.91543, 0.89157, 0.86695, 0.84086, 0.813]),
-
-        '10MV 10cm': np.array([
-            0.997, 1.0046, 1.0092, 
-            1.012, 1.013, 1.012, 1.0103, 1.008, 1.005, 1.0024, 1, 1, 1.0024, 1.005, 
-            1.008, 1.0103, 1.012, 1.013, 1.012, 1.0092, 1.0046, 0.997]),
-
-        '10MV FFF 10cm': np.array([
-            0.703, 0.73648, 
-            0.76895, 0.80229, 0.83591, 0.87038, 0.90457, 0.93633, 0.96486, 0.98671, 
-            0.99819, 0.99819, 0.98671, 0.96486, 0.93633, 0.90457, 0.87038, 0.83591, 
-            0.80229, 0.76895, 0.73648, 0.703]),
-
-        '18MV 10cm': np.array([
-            1.013, 1.0176, 1.0202, 1.022, 
-            1.022, 1.0219, 1.0183, 1.011, 1.005, 1.0024, 1.0008, 1.0008, 1.0024, 1.005, 
-            1.011, 1.0183, 1.0219, 1.022, 1.022, 1.0202, 1.0176, 1.013]),
-
-        '6MeV 1.3cm': np.array([
-            0.97, 0.98124, 0.988, 0.992, 
-            0.995, 0.9971, 0.999, 1, 1, 1, 1, 1, 1, 1, 1, 0.999, 0.9971, 0.995, 0.992, 
-            0.988, 0.98124, 0.97]),
-
-        '9MeV 2.3cm': np.array([
-            1.005, 1.014, 1.015, 1.013, 
-            1.011, 1.0089, 1.006, 1.004, 1.002, 1.001, 1, 1, 1.001, 1.002, 1.004, 1.006, 
-            1.0089, 1.011, 1.013, 1.015, 1.014, 1.005]),
-
-        '12MeV 2.3cm': np.array([
-            1.015, 1.017, 1.015, 1.012, 1.009, 
-            1.006, 1.004, 1.002, 1.001, 1, 1, 1, 1, 1.001, 1.002, 1.004, 1.006, 1.009, 
-            1.012, 1.015, 1.017, 1.015]),
-        '16MeV 3.3cm': np.array([
-            1.01, 1.013, 1.011, 1.0081, 1.005, 
-            1.0029, 1.001, 1, 1, 1, 1, 1, 1, 1, 1, 1.001, 1.0029, 1.005, 
-            1.0081, 1.011, 1.013, 1.01]),
-        '20MeV 3.3cm': np.array([
-            0.999, 0.999, 0.997, 0.995, 0.993, 
-            0.992, 0.992, 0.99333, 0.996, 0.998, 1, 1, 0.998, 0.996, 0.99333, 0.992, 0.992, 0.993, 
-            0.995, 0.997, 0.999, 0.999])       
-    }   
-}
-
+### Needs to be updated when new linac added ###
 file_indices = {
-    # Any time the field order changes for one of the plans you have to update the field order in here
-    # add a new date key in yyyy-mm-dd format, then add all linacs.
 
-    # if a new linac is added, must add new linac key as wel
     '2022-05-04': 
         {
         'TB3426': 
@@ -252,6 +160,112 @@ file_indices = {
     }
 }
 
+### Needs to be updated when new linac added ###
+all_baselines = {
+    'TB3426': {
+        #   Baseline values for photons correspond to variable 'phAveBaselinesROI' and electrons corresponding to variable 'electronBaselineROI' generated using
+        #   'T:\MATLAB\ML12_TB_Baselines.m'. The MATLAB code performs linear interpolation of commissioning data from OmniPro (100 SSD, 20x20 cm^2, 10cm depth) to 
+        #   match detector positions in MatriXX. For photons, baselines points are derived for inline and crossline profiles separately then averaged.
+        #   Electron baselines are only crossline.
+
+        '6MV 10cm': np.array([
+            0.981001,	0.99092925,	0.99785775,	1.003,	1.005,	1.004,	1.00364275,	1.005,	
+            1.00452375,	1.0025,	1.001,	1.001,	1.0025,	1.00452375,	1.005,	1.00364275,	
+            1.004,	1.005,	1.003,	0.99785775,	0.99092925,	0.981001]),
+
+        '6MV FFF 10cm': np.array([
+            0.81200175,	0.839478,	0.8657155,	0.89014375,	0.91366775,	0.93523875,	0.95500075,	
+            0.9715005,	0.985405,	0.99385725,	1.0001905,	1.0001905, 0.99385725,	0.985405,	
+            0.9715005,	0.95500075,	0.93523875,	0.91366775,	0.89014375,	0.8657155,	0.839478,	
+            0.81200175]),
+
+        '10MV 10cm': np.array([
+            0.99350025,	1.00030975,	1.00585775,	1.00942875,	1.011,	1.0104045,	1.00914275,	
+            1.007,	1.0055,	1.002,	1,	1,	1.002,	1.0055,	1.007, 1.00914275,	1.0104045,	
+            1.011,	1.00942875,	1.00585775,	1.00030975,	0.99350025]),
+
+        '10MV FFF 10cm': np.array([
+            0.700002,	0.73190725,	0.76507325,	0.79843,	0.83264425,	0.866882,	0.901358,	
+            0.934834,	0.96331,	0.98592875,	0.99859525,	0.99859525,	0.98592875,	0.96331,	
+            0.934834,	0.901358,	0.866882,	0.83264425,	0.79843,	0.76507325,	0.73190725,	
+            0.700002]),
+
+        '18MV 10cm': np.array([
+            1.01350025,	1.0185,	1.021,	1.022,	1.0225,	1.02145225,	1.0182855,	1.01149975,	
+            1.00557125,	1.0025,	1,	1,	1.0025,	1.00557125,	1.01149975, 1.0182855,	1.02145225,	
+            1.0225,	1.022,	1.021,	1.0185,	1.01350025]),
+
+        '6MeV 1.3cm': np.array([
+            0.966001,  0.9786195,	0.9862385,	0.9908575,	0.994,	0.997,	0.998,	0.999,	
+            0.999,	1,	1,	1,	1,	0.999,	0.999,	0.998,	0.997,	0.994,	0.9908575,
+            0.9862385,  0.9786195,	0.966001]),
+
+        '9MeV 2.1cm': np.array([
+            1.005001,  1.0126195,	1.013,	1.0121425,	1.01,	1.007,	1.005,	1.003,	
+            1.002,	1.001,	1,	1,	1.001,	1.002,	1.003,	1.005,	1.007,	1.01,	1.0121425,	
+            1.013,  1.0126195,	1.005001]),
+            
+        '12MeV 2.0cm': np.array([
+            1.011, 1.011,	1.01,	1.0071425,	1.005,	1.003,	1.002,	1.001,	1,	1,	1,	1,
+            1,	1,	1.001,	1.002,	1.003,	1.005,	1.0071425,	1.01,	1.011, 1.011])
+    },
+    'TB5833': {
+        # Data found in T:\TrueBeam5833\Commissioning\Beam Scanning\MatriXX Baselines
+        # 
+        '6MV 10cm': np.array([
+            0.981, 0.99062, 
+            0.99724, 1.0019, 1.004, 1.004, 1.004, 1.0043, 1.004, 1.0024, 
+            1, 1, 1.0024, 1.004, 1.0043, 1.004, 1.004, 1.004, 1.0019, 
+            0.99724, 0.99062, 0.981]),
+
+        '6MV FFF 10cm': np.array([
+            0.813, 0.84086, 
+            0.86695, 0.89157, 0.91543, 0.93629, 0.95614, 0.97267, 0.98591, 
+            0.99557, 1, 1, 0.99557, 0.98591, 0.97267, 0.95614, 0.93629, 
+            0.91543, 0.89157, 0.86695, 0.84086, 0.813]),
+
+        '10MV 10cm': np.array([
+            0.997, 1.0046, 1.0092, 
+            1.012, 1.013, 1.012, 1.0103, 1.008, 1.005, 1.0024, 1, 1, 1.0024, 1.005, 
+            1.008, 1.0103, 1.012, 1.013, 1.012, 1.0092, 1.0046, 0.997]),
+
+        '10MV FFF 10cm': np.array([
+            0.703, 0.73648, 
+            0.76895, 0.80229, 0.83591, 0.87038, 0.90457, 0.93633, 0.96486, 0.98671, 
+            0.99819, 0.99819, 0.98671, 0.96486, 0.93633, 0.90457, 0.87038, 0.83591, 
+            0.80229, 0.76895, 0.73648, 0.703]),
+
+        '18MV 10cm': np.array([
+            1.013, 1.0176, 1.0202, 1.022, 
+            1.022, 1.0219, 1.0183, 1.011, 1.005, 1.0024, 1.0008, 1.0008, 1.0024, 1.005, 
+            1.011, 1.0183, 1.0219, 1.022, 1.022, 1.0202, 1.0176, 1.013]),
+
+        '6MeV 1.3cm': np.array([
+            0.97, 0.98124, 0.988, 0.992, 
+            0.995, 0.9971, 0.999, 1, 1, 1, 1, 1, 1, 1, 1, 0.999, 0.9971, 0.995, 0.992, 
+            0.988, 0.98124, 0.97]),
+
+        '9MeV 2.3cm': np.array([
+            1.005, 1.014, 1.015, 1.013, 
+            1.011, 1.0089, 1.006, 1.004, 1.002, 1.001, 1, 1, 1.001, 1.002, 1.004, 1.006, 
+            1.0089, 1.011, 1.013, 1.015, 1.014, 1.005]),
+
+        '12MeV 2.3cm': np.array([
+            1.015, 1.017, 1.015, 1.012, 1.009, 
+            1.006, 1.004, 1.002, 1.001, 1, 1, 1, 1, 1.001, 1.002, 1.004, 1.006, 1.009, 
+            1.012, 1.015, 1.017, 1.015]),
+        '16MeV 3.3cm': np.array([
+            1.01, 1.013, 1.011, 1.0081, 1.005, 
+            1.0029, 1.001, 1, 1, 1, 1, 1, 1, 1, 1, 1.001, 1.0029, 1.005, 
+            1.0081, 1.011, 1.013, 1.01]),
+        '20MeV 3.3cm': np.array([
+            0.999, 0.999, 0.997, 0.995, 0.993, 
+            0.992, 0.992, 0.99333, 0.996, 0.998, 1, 1, 0.998, 0.996, 0.99333, 0.992, 0.992, 0.993, 
+            0.995, 0.997, 0.999, 0.999])       
+    }   
+}
+
+
 def get_test_positions(directory):
     # Get test positions from first file in directory list
     # If 'Gantry angle' was set for the QA, the lines will be shifted down one. This block is to account for that.
@@ -331,7 +345,7 @@ def get_scaling_factor(open_file):
             return cGy
 
 
-input_folder = input("Drag and drop the folder containing the files to be processed.\n").replace("& ", "").strip("'").strip('"')
+input_folder = input("Drag and drop the folder containing the files to be processed (ONE COMPLETE DATASET ONLY).\n").replace("& ", "").strip("'").strip('"')
 acquisition_date = ''
 
 files, file_indices, test_positions = organize_data(input_folder)
@@ -341,6 +355,7 @@ process = True
 if files is None:
     process = False
 
+### Needs to be updated when new linac added ###
 # add elif statement for new linac and updated file_indices and all_baselines accordingly
 
 elif '3426' in input_folder:
@@ -355,9 +370,10 @@ elif '5833' in input_folder:
 
 else:
     process = False
-    print("This executable is currently only set up to process files from TrueBeam3426 and TrueBeam5833")
+    print("This executable is currently only set up to process files from the TrueBeam3426 and TrueBeam5833 folders.")
 
 if process == True:
+    print("Processing files.")
     file_data = {}
 
     for i in range(len(files)):
@@ -377,6 +393,10 @@ if process == True:
 
 
     all_results = {}
+
+    ### Needs to be updated when new linac added ###
+    # Differences between baseline acquisition and available energies constituted IF statements for machines.
+    # update accordingly for new linac
 
     all_results['Mat6Y1'] = file_data[file_indices['6MV 1.3cm EDW in']]['cGy']
     all_results['Mat6Y2'] = file_data[file_indices['6MV 1.3cm EDW out']]['cGy']

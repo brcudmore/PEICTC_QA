@@ -10,10 +10,12 @@ import os
 import time
 import base64
 import sys
+from time import sleep
 
 # Author Ben Cudmore 
 # to package into executable, run the following line in the terminal when in the py directory.
-# pyinstaller -F --hiddenimport=pyTQA.tqa --console --onedir --clean py
+# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --consol --clean ML13.py
+
 
 sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
 from Helpers.QATrackHelpers import QATrack as qat
@@ -25,9 +27,11 @@ def get_input_path():
     if '3426' in image_path:
         linac = '3426'
         print('\nThe file is from the TrueBeam3426 folder and will be processed accordingly.')
+        sleep(3)
     elif '5833' in image_path:
         linac = '5833'
         print('\nThe file is from the TrueBeam5833 folder and will be processed accordingly.')
+        sleep(3)
     else:
         linac = ''
 
@@ -254,8 +258,12 @@ def find_irradiated_edges(image, center_bb):
 
 def convert_pixels_to_cm(results, dpi):
     results_in_cm = {}
+    # Setup is 100cm SSD to face of isoalign jig; detector (film) is 6 mm below
+
+    magnification_factor = 100 / 100.6 
+
     for side in results:
-        results_in_cm[side] = round((results[side] / dpi[0] * 2.54), 2)
+        results_in_cm[side] = round((results[side] / dpi[0] * 2.54 * magnification_factor), 2)
 
     return results_in_cm
 
@@ -283,11 +291,12 @@ def find_centroid_using_polynomial(x_values, peak, degree=4):
 
 
 def post_to_qatrack(linac, results_in_cm):
-    qat.log_into_qat()
+    qat.log_into_QATrack()
     utc_url, macros = qat.get_unit_test_collection(linac, "Light/Radiation Coincidence")
     formatted_results = qat.format_results(macros, results_in_cm)
+
     date = qat.format_date(image_path)
-    qat.post_results(utc_url, formatted_results, date)
+    qat.post_results(utc_url, formatted_results, date, attachments = attachments)
 
 def open_film_tif():
 
@@ -329,6 +338,7 @@ def rotate_film(image, angle):
     return updated_image
 
 def measure_squares(image):
+    global attachments
 
     results_in_pixels, interpolated_peaks = find_irradiated_edges(image, center_bb)
 
@@ -351,15 +361,14 @@ def measure_squares(image):
             if "Up-Down" in direction:
                 draw_horizontal_lines(i, center_bb['y'])
 
-    plt.title("Results. Close Figure to Proceed.")
+    plt.title("Film Analysis Results")
     plt.xlabel('X2')
     plt.ylabel('Y1', rotation = 0)
 
-    plt.show()
     figure_save_location = image_path.rstrip('.tif') + " Analysis.png"
     plt.savefig(figure_save_location)
-
-    attachments =   [{'filename': "Jaw Deviation Summary.png",
+    plt.show()
+    attachments =   [{'filename': "Film Analysis Results.png",
             'value': base64.b64encode(open(figure_save_location, 'rb').read()).decode(),
             'encoding': 'base64'}]
 
@@ -467,6 +476,7 @@ def approximate_center(img):
 
     return center_start
 
+attachments = []
 field_size_cm = 15.75
 crop_px = round(field_size_cm / 2.54 * 96 / 2)
 image_path = ''
