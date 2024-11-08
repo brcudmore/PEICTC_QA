@@ -415,6 +415,8 @@ def clickQATrack():
     utc_url, _ = qat.get_unit_test_collection(machine, "Picket Fence")
 
     qat.post_results(utc_url, tests, formatted_date)
+    btn_sendToQATrack['state']=DISABLED
+
 
 # Define theme of GUI
 BG_btn = "white"
