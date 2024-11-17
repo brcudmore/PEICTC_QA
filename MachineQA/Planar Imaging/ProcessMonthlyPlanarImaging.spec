@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['ML13.py'],
+    ['ProcessMonthlyPlanarImaging.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=['pydicom.encoders.gdcm', 'pydicom.encoders.pylibjpeg', 'pyTQA.tqa'],
+    hiddenimports=['pydicom.encoders.gdcm', 'pydicom.encoders.pylibjpeg', 'pylinac', 'pyTQA.tqa'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -21,7 +21,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='ML13',
+    name='ProcessMonthlyPlanarImaging',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -34,4 +34,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    uac_admin=True,
 )

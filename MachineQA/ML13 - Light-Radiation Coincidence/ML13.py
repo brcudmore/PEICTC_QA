@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 from PIL import Image
+from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks, medfilt
 from scipy.ndimage import rotate
 import cv2
@@ -14,7 +15,8 @@ from time import sleep
 
 # Author Ben Cudmore 
 # to package into executable, run the following line in the terminal when in the py directory.
-# pyinstaller -F --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --consol --clean ML13.py
+# pyinstaller --hiddenimport=pydicom.encoders.gdcm --hiddenimport=pydicom.encoders.pylibjpeg --hiddenimport=pyTQA.tqa --uac-admin --onefile --clean ML13.py
+
 
 
 sys.path.append("T:\\_Physics Team PEICTC\\Benjamin\\GitHub\\PEICTC_QA")
@@ -22,7 +24,7 @@ from Helpers.QATrackHelpers import QATrack as qat
 
 def get_input_path():
 
-    image_path = input("\nDrag and drop the scanned film file into terminal and hit enter.\n").replace("& ", "").strip("'")
+    image_path = input("\nDrag and drop the scanned film file into terminal and hit enter.\n").replace("& ", "").strip("'").strip('"')
     
     if '3426' in image_path:
         linac = '3426'
@@ -87,8 +89,9 @@ def get_new_start(img, center_bb_start, search_window = 20):
     gray_column = np.mean(gray_blurred, axis = 1)
 
     center_bb_intermediate = {}
-    center_bb_intermediate1['x'] = find_centroid_using_polynomial(range(len(gray_row)), gray_row)
-    center_bb_intermediate1['y'] = find_centroid_using_polynomial(range(len(gray_column)), gray_column)
+
+    center_bb_intermediate1['x'] = find_centroid_using_spline(range(len(gray_row)), gray_row)
+    center_bb_intermediate1['y'] = find_centroid_using_spline(range(len(gray_column)), gray_column)
 
     if show_plots == True:
         plt.imshow(gray_blurred)
@@ -108,10 +111,11 @@ def get_center_bb(img, center_bb_start):
     count = 0
 
     # keep adjusting bb ROI until the bb is centered for consistency
-    while abs(difference['x']) < 9.5 or abs(difference['x']) > 10.5 or abs(difference['y']) < 9.5 or abs(difference['y']) > 10.5:
+    while abs(difference['x']) < 8 or abs(difference['x']) > 12 or abs(difference['y']) <  8 or abs(difference['y']) > 12:
         count += 1
         new_start, difference = get_new_start(img, new_start)
         if count == 10:
+            print("couldn't find bb")
             break
 
     # crop out extra film and film holder
@@ -284,6 +288,26 @@ def find_centroid_using_polynomial(x_values, peak, degree=4):
 
     peaks, _ = find_peaks(interpolated_fit_curve)
     interpolated_peaks = high_res_x_values[peaks]
+    if len(interpolated_peaks) == 0:
+        return "NA"
+
+    return float(interpolated_peaks[0])
+
+def find_centroid_using_spline(x_values, peak, smoothing_factor=1, show_plots=False):
+    spline = UnivariateSpline(x_values, peak, s=smoothing_factor)
+    high_res_x_values = np.linspace(x_values[0], x_values[-1], 2000)
+
+    interpolated_fit_curve = spline(high_res_x_values)
+
+    if show_plots:
+        plt.plot(high_res_x_values, interpolated_fit_curve, 'r-', zorder=10)
+        plt.plot(x_values, peak, color='blue', label="Data points", zorder=5)
+        plt.show()
+
+    # Find the peaks of the interpolated curve
+    peaks, _ = find_peaks(interpolated_fit_curve)
+    interpolated_peaks = high_res_x_values[peaks]
+
     if len(interpolated_peaks) == 0:
         return "NA"
 
@@ -477,7 +501,7 @@ def approximate_center(img):
     return center_start
 
 attachments = []
-field_size_cm = 15.75
+field_size_cm = 16
 crop_px = round(field_size_cm / 2.54 * 96 / 2)
 image_path = ''
 
@@ -498,6 +522,7 @@ center_bb_start = approximate_center(image)
 irradiated_film, center_bb = get_center_bb(image, center_bb_start)
 
 angle = get_skew(irradiated_film)
+
 rotated_film = rotate_film(irradiated_film, angle)
 results_in_cm = measure_squares(rotated_film)
 

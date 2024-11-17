@@ -203,22 +203,21 @@ class SMARI:
 
     def process_input_folder():
         folder_content = SMARI.determine_input_path_contents()
-        toot = SMARI.machines
         SMARI.initialize_result_list(folder_content)
-        toot = SMARI.machines
         if 'DiscoveryRT' in SMARI.machines.keys():
             SMARI.set_expected_ct_sim_results()
         else:
             SMARI.set_expected_linac_results()
-        toot = SMARI.machines
 
         for machine in SMARI.machines:
-            toot = SMARI.machines[machine]
             for date_key in SMARI.machines[machine]:
                 for test in SMARI.machines[machine][date_key]:
                     schedule_id = SMARI.machines[machine][date_key][test]['Schedule ID']
                     acquisition_date = SMARI.machines[machine][date_key][test]["Acquisition Date"]
-                    target_folder = SMARI.create_processed_path(machine, acquisition_date, test)
+                    try:
+                        target_folder = SMARI.create_processed_path(machine, acquisition_date, test)
+                    except:
+                        pass
 
                     try:
                         SMARI.upload_to_smari(schedule_id, machine, test, date_key, target_folder)
@@ -303,8 +302,6 @@ class SMARI:
                         if machine in expected_machine:
                             for test in SMARI.machines[machine]['Tests']:
                                 if folder_content[machine][date_key][uid]['kvp'] == SMARI.machines[machine]['Tests'][test]['kvp'] and folder_content[machine][date_key][uid]['mA'] == SMARI.machines[machine]['Tests'][test]['mA']: 
-                                    toot = tqa.get_machine_id_from_str(machine.replace("ryRT", "ry RT"))
-                                    tooot = tqa.get_schedule_id_from_string(test, toot)
                                     updated_folder_content[machine][date_key][test] = {
                                         "UID": uid,
                                         "Schedule ID": tqa.get_schedule_id_from_string(test, tqa.get_machine_id_from_str(machine.replace("ryRT", "ry RT"))),
@@ -316,7 +313,6 @@ class SMARI:
     
     def set_expected_ct_sim_results():
         for machine in SMARI.machines:
-            toot = SMARI.machines
             for date_key in SMARI.machines[machine]:
                 for test in SMARI.machines[machine][date_key]:
                     if hasattr(SMARI.machines[machine][date_key][test], 'Results') == False:
@@ -391,7 +387,10 @@ class SMARI:
                             if resp.status_code <200 or resp.status_code > 299:
                                 print(resp.json()) #:" + str(resp.text.split(":")[-1]))
                             else:
-                                os.rename(file_directory, os.path.join(target_folder, file))
+                                if os.path.exists(os.path.join(target_folder, file)):
+                                    os.rename(file_directory, os.path.join(target_folder, "repeat_" + file))
+                                else:
+                                    os.rename(file_directory, os.path.join(target_folder, file))
 
     def analyze_image_set(schedule_id):
         tqa.start_processing(schedule_id)
